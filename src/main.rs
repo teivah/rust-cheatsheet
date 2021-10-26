@@ -19,11 +19,11 @@ fn main() {
     heap_stack();
     string();
     tuples();
+    control_flow();
+    loops();
     array();
     vector();
     functions();
-    control_flow();
-    loops();
     structs();
     enums();
     closures();
@@ -41,6 +41,7 @@ fn main() {
     lifetimes();
     panicking();
     iterator();
+    smart_pointers();
     testing();
 }
 
@@ -53,18 +54,24 @@ fn cargo() {
 
 /// A 3-slash comment is used to create an exportable documentation.
 /// It supports **Markdown**.
-/// It can be generated and visualized if the project is a library using $ cargo doc -- open
+/// It can be generated and visualized if the project is a library using $ cargo doc --open
 fn comment() {
     // Single line comment
 
     /*
     Multiline comment
      */
+
+    //! Adds documentation to the item that contains the comment instead of the item following the comment
+    //! In this case, the comment function
 }
 
 fn primitives() {
     // Type inference
     let _ = 1;
+    // The previous declaration is similar to this
+    let _: i32 = 1;
+
     // We can set the type during the declaration
     let _ = 1i8;
 
@@ -74,7 +81,7 @@ fn primitives() {
 
     // Conversion
     let i: i64 = 1;
-    let _: i32 = i as i32;
+    let _ = i as i32;
 
     // Unsigned integers: from u8 to u128
     let _: u8 = 1;
@@ -89,12 +96,12 @@ fn primitives() {
 
     // Shadowing
     // Example: same name but different type
-    let _ = "foo";
-    let _ = false;
+    let _shadowed = "foo";
+    let _shadowed = false;
 
     // Immutability
     let _ = "foo";
-    // Compilation error
+    // This will trigger a compilation error
     // _ = "bar";
     let mut _s = "bar";
     // Now we can mutate m
@@ -104,8 +111,8 @@ fn primitives() {
     const _FOO: f32 = 3.1;
 
     // Static variable
-    // TODO Difference between const and static variable?
     static _BAR: i32 = 3;
+    // A static variable can be mutable compared to a constant
 }
 
 fn heap_stack() {
@@ -113,10 +120,10 @@ fn heap_stack() {
     // Memory is recaptured after the variable goes out of scope
     // Default assignment is a copy
 
-    // Memory than can grow in size (vector, String, structs, etc.)
+    // Heap: memory than can grow in size (vector, String, structs, etc.)
     // Memory is recaptured after the last owner goes out of scope
     // Default assignment is a transfer of ownership (see later)
-    // Slower than stack
+    // Slower than stack (contention, etc.)
 }
 
 fn string() {
@@ -131,7 +138,6 @@ fn string() {
     // Concatenation
     let s: &str = &[s, "bar"].concat();
     s2.push_str("bar");
-    // TODO: bench
 
     // Convert from and to string literal
     let _ = s.to_string();
@@ -145,7 +151,7 @@ fn string() {
     let _slice: &str = &s[1..]; // oo
     let _slice: &str = &s[..]; // foo
 
-    // Format a string
+    // String format
     let i = 1;
     let _s = format!["foo {}", i];
 
@@ -159,7 +165,7 @@ fn string() {
     let _: String = s1.to_owned() + &s2.to_owned();
 
     // The following operation is not possible
-    // An char can be encoded on multiple bytes
+    // A char can be encoded on multiple bytes
     // Rust does not allow this as may access an invalid character on its own
     // let _ = s[0];
     // Instead, we have to iterate to get each grapheme clusters (a letter)
@@ -173,11 +179,60 @@ fn tuples() {
     let t = (true, 1);
 
     // Assign elements from a tuple
-    let _ = t.0;
-    let _ = t.1;
+    let _: bool = t.0;
+    let _: i32 = t.1;
 
     // Or with a single line
     let (_i, _j) = t;
+}
+
+fn control_flow() {
+    // If/else
+    let i = 1;
+    if i < 2 {
+        // Will be true
+    } else {
+        // Will be false
+    }
+
+    // If/else assignment
+    let _ = if i == 5 { true } else { false };
+}
+
+fn loops() {
+    // For (included..excluded)
+    for _ in 0..3 {}
+
+    // Reverse
+    for _i in (1..3).rev() {}
+
+    // While
+    // i has to be mutable
+    let mut i = 0;
+    while i <= 3 {
+        i += 1;
+    }
+
+    // Labelled while
+    let mut i = 0;
+    'while1: while i < 3 {
+        break 'while1;
+    }
+
+    // Loop without conditions
+    loop {
+        break;
+    }
+
+    // Loop assignement
+    let mut sum = 0;
+    let _: bool = loop {
+        sum += i;
+        i += 1;
+        if i == 3 {
+            break sum < 10; // Returns a boolean
+        }
+    };
 }
 
 fn array() {
@@ -185,11 +240,11 @@ fn array() {
     let a: [i32; 5] = [1, 2, 3, 4, 5];
     // Access element
     let _ = a[0];
-    // Does not compile as the array is not mutable
+    // The following line does not compile as the array is not mutable
     // a[1] = 10;
     // In order to mutate it we have to declare it mutable
-    let mut _a: [i32; 5] = [1, 2, 3, 4, 5];
-    // a[1] = 10;
+    let mut a: [i32; 5] = [1, 2, 3, 4, 5];
+    a[1] = 10;
 
     // Initializes the 5 elements to value 0
     let a: [i32; 5] = [0; 5];
@@ -207,32 +262,44 @@ fn array() {
     let s = &a[1..3];
     // Slice length is 2
     let _ = s.len();
+
+    // Array iteration
+    let a: [&str; 3] = ["foo", "bar", "baz"];
+    // Over each element index
+    for i in 0..a.len() {
+        let _ = a[i];
+    }
+    // Or directly over each element
+    for element in a.iter() {
+        let _ = element;
+    }
 }
 
 fn vector() {
-    // A vector is like a Go slice
-    // Backed by an array, with length and capacity, resizable
+    // A vector is a variable length array
+    // It is backed by an array, with a length and capacity
 
     // Initialization - 0 capacity
     let _: Vec<i32> = Vec::new();
     // Initialization using a macro - 0 capacity
     let _: Vec<i32> = vec![];
-    // Initialization with values
+    // Initialization with i32 values
     let _ = vec![1i32, 2, 3];
     // Initialization with initial capacity and mutable
     let mut v: Vec<i32> = Vec::with_capacity(10);
 
     // Add element, added to index 0
     v.push(10); // [10]
+
     // Added to index 1
     v.push(20); // [10, 20]
 
     // Remove latest element
     v.pop(); // [20]
 
-    // Get an element returns an option
+    // Get an element returns an option (see later)
     let _: Option<&i32> = v.get(0);
-    // Accessing an index outside the vector will not panic, it returns a None
+    // Accessing an index outside the vector will not panic, it returns a None (see later)
     let _: Option<&i32> = v.get(100);
 
     // Get vector length and capacity
@@ -252,7 +319,8 @@ fn vector() {
     let v = vec![1i32, 2, 3];
     for _i in v {}
     // After this operation, we cannot use v anymore
-    for _i in vec![1i32, 2, 3].into_iter() {}
+    // Hence, the following line will not compile
+    // for _i in v {}
 
     // Copy a vector
     let _ = vec![1i32, 2, 3].to_vec();
@@ -263,7 +331,8 @@ fn functions() {
     let _ = increment(1);
 
     // Higher order function
-    let f = increment;
+    // Note that because of inference, the type is optional
+    let f: fn(i32) -> i32 = increment;
     let _ = f(1);
 
     // Partially applied function
@@ -271,6 +340,7 @@ fn functions() {
     let _ = partially_applied_functions(6);
 }
 
+// A simple function example
 fn increment(a: i32) -> i32 {
     // The latest expression is the value returned
     a + 1
@@ -278,71 +348,9 @@ fn increment(a: i32) -> i32 {
     // return a + 1;
 }
 
+// Another simple function example
 fn multiply(a: i32, b: i32) -> i32 {
     a * b
-}
-
-fn control_flow() {
-    // If/else
-    let i = 1;
-    if i < 2 {
-        println!("less");
-    } else {
-        println!("more");
-    }
-
-    // If/else assignment
-    let _ = if i == 5 { true } else { false };
-}
-
-fn loops() {
-    // For (included/excluded)
-    for _ in 0..3 {}
-
-    // Reverse (still included/excluded)
-    for i in (1..3).rev() {
-        println!("rev={}", i)
-    }
-
-    // While
-    // a has to be mutable
-    let mut i = 0;
-    while i <= 3 {
-        i += 1;
-    }
-
-    // Labelled while
-    let mut i = 0;
-    'while1: while i < 3 {
-        break 'while1;
-    }
-
-    // Loop without conditions
-    loop {
-        break;
-    }
-
-    // Loop assignement
-    let mut sum = 0;
-    let _ = loop {
-        sum += i;
-        i += 1;
-        if i == 3 {
-            break sum < 10;
-        }
-    };
-    // Use case for a loop: retry an operation that might fail
-
-    // Array iteration
-    let a: [&str; 3] = ["foo", "bar", "baz"];
-    // Over each element index
-    for i in 0..a.len() {
-        let _ = a[i];
-    }
-    // Or directly over each element
-    for element in a.iter() {
-        let _ = element;
-    }
 }
 
 fn structs() {
@@ -351,7 +359,7 @@ fn structs() {
 
     // C-like
     // We need to assign a value for each member of the structure otherwise it won't compile
-    let person = Person1 {
+    let person = CLikePerson {
         name: "foo".to_string(),
         age: 18,
     };
@@ -359,39 +367,64 @@ fn structs() {
     let _ = person.name;
     let _ = person.age;
     // Copy elements
-    let _ = Person1 {
+    let _ = CLikePerson {
         name: "bar".to_string(),
         ..person // Copy the rest of the elements, does not compile without it
     };
     // If we hold variables whose name are the same than the fields, we can pass them directly
     let name = String::from("foo");
     let age = 1;
-    let _ = Person1 { name, age };
+    let _ = CLikePerson { name, age };
 
     // Tuple
-    let person = Person2("foo".to_string(), 20);
+    let tuple_person = TuplePerson("foo".to_string(), 20);
     // Accessing elements
-    let _ = person.0;
+    let _ = tuple_person.0;
 
     // Unit
     // A simple structure without members
     // TODO Use case?
     let _ = UnitStruct;
+
+    // There are three types of methods
+    // First, calling using a &self
+    // This does not allow the structure to be mutated
+    person.method1();
+    // Second, passing a &mut self allowing the structure to be mutated within the method
+    let mut mutable_person = CLikePerson {
+        name: "foo".to_string(),
+        age: 18,
+    };
+    mutable_person.method2();
+    // Last, by transferring the ownership of the structure (see later)
+    person.method3();
 }
 
 // C-like structure
 // The naming convention for each structure type is pascal case
 #[derive(Debug)]
-struct Person1 {
+struct CLikePerson {
     name: String,
     age: u32,
 }
 
 // Tuple structure
-struct Person2(String, u32);
+struct TuplePerson(String, u32);
 
 // Unit structure
 struct UnitStruct;
+
+impl CLikePerson {
+    fn method1(&self) {
+        // The structure cannot be mutated so the following line will not compile
+        // self.age = 20;
+    }
+    fn method2(&mut self) {
+        // This time, the structure can be mutated
+        self.age = 20;
+    }
+    fn method3(self) {}
+}
 
 fn enums() {
     // Simple enum (based on units)
@@ -401,6 +434,7 @@ fn enums() {
     // Enum with variants
     let _ = EnumWithVariants::Foo { id: 1, age: 1 };
     let _ = EnumWithVariants::Bar("foo".to_string());
+    let _ = EnumWithVariants::Baz;
 }
 
 enum Enum {
@@ -411,6 +445,7 @@ enum Enum {
 enum EnumWithVariants {
     Foo { id: i32, age: i32 }, // Struct variant
     Bar(String),               // Tuple variant
+    Baz,                       // Unit
 }
 
 fn closures() {
@@ -432,7 +467,7 @@ fn closures() {
     let s = StructWithClosure { f: |x| x + 1 };
     let _ = (s.f)(1);
 
-    // A structure holding a closure with generics
+    // A structure holding a closure with generics (see later)
     let s = StructWithClosureAndGenerics { f: |x| x + 1 };
     let _ = (s.f)(1);
 }
@@ -442,8 +477,8 @@ struct StructWithClosure {
 }
 
 struct StructWithClosureAndGenerics<T>
-    where
-        T: Fn(u32) -> u32,
+where
+    T: Fn(u32) -> u32,
 {
     f: T,
 }
@@ -461,12 +496,13 @@ fn collections_map() {
     // If a type implements the Copy trait (e.g. i32), the values are copied into the hash map
     // Hence it is valid to reuse i
     let _ = i;
-    // Otherwise, the values are moved. Hence, it is invalid to reuse s
+    // Otherwise, the values are moved
+    // Hence, as it is invalid to reuse s, the following line wille not compile
     // let _s2 = s;
 
     // Insert if the key does not already exist
     let v: &mut i32 = map.entry(String::from("two")).or_insert(2);
-    // At this stage, we can also mutate v to mutate the value inside the map
+    // We can also mutate the entry value directly
     *v = 20;
 
     // Iteration
@@ -640,21 +676,15 @@ fn pattern_matching() {
     // Enum matching
     let e = EnumWithVariants::Bar("foo".to_string());
     match e {
-        // We have to use all the defined in the structure and their field names
-        // TODO Do we?
+        // We have to use all possible enum values or use a default case
         EnumWithVariants::Foo { id, age } => println!("id={}, age={}", id, age),
         EnumWithVariants::Bar(foo) => println!("element={}", foo),
+        _ => println!("else"), // Baz variant
     }
 }
 
 fn if_let() {
     // If we need a match that runs code when the value matches one pattern only, we can use if let
-    let i = 1;
-    if let 0 = i {
-        println!("zero");
-    }
-
-    // Example with enum
     let e = EnumWithVariants::Bar("foo".to_string());
     if let EnumWithVariants::Foo { id, age } = e {
         println!("id={}, age={}", id, age);
@@ -679,7 +709,7 @@ fn formatted_print() {
     let v = vec![1i32, 2, 3];
     println!("{:?}", v);
     // It works with structures implementing the Debug trait or the annotation #[derive(Debug)]
-    let s = Person1 {
+    let s = CLikePerson {
         name: "foo".to_string(),
         age: 1,
     };
@@ -732,8 +762,8 @@ fn specifying_multiple_trait<T: utils::Trait1 + utils::Trait2>(x: T, _: T) -> T 
 }
 
 fn specifying_multiple_trait_alternative_syntax<T>(x: T, _: T) -> T
-    where
-        T: utils::Trait1 + utils::Trait2,
+where
+    T: utils::Trait1 + utils::Trait2,
 {
     x
 }
@@ -761,7 +791,7 @@ enum GenericEnum<T, E> {
 }
 
 fn option() {
-    // Rust does not have nulls. Instead, it has an unum that can encode this concept of present or absent.
+    // Rust does not have nulls. Instead, it has an enum that can encode this concept of present or absent.
 
     // Option means the possibility of absence
     let option = option_example(0);
@@ -864,13 +894,13 @@ fn ownership() {
     let s = String::from("foo");
     // We transfer the ownership of the string value to s2
     let _ = s;
-    // Hence, Rust will free s so the following code will not compile anymore
+    // Hence, Rust will free s so the following line will not compile anymore
     // println!("{:?}", s);
 
     // The semantics for passing a value to a function is similar to variable assignment
     let s = String::from("foo");
     takes_ownership(s);
-    // At this stage, we cannot use s
+    // At this stage, we cannot use s anymore
     // Returning a value from a function does also transfer ownership
 
     // Having a method that takes ownership of the instance by using just self is rare
@@ -1048,8 +1078,8 @@ struct _LifetimeStruct<'a> {
 }
 
 fn generics_with_lifetimes<'a, T>(x: &'a T) -> &'a T
-    where
-        T: Trait,
+where
+    T: Trait,
 {
     x
 }
@@ -1142,6 +1172,16 @@ impl Iterator for CustomIterator {
         }
         return None;
     }
+}
+
+fn smart_pointers() {
+    // A smart pointer is a data structure that not only act like a pointer
+    // but also have additional metadata and capabilities
+
+    // Distinction between smart pointer and ordinary struct:
+    // Smart pointers implement the following traits:
+    // * Deref: allows an instance of the smart pointer struct to behave like a reference
+    // * Drop: allows to customize the code that is run when an instance of the smart pointer goes out of scope
 }
 
 fn testing() {
