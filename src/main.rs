@@ -6,16 +6,14 @@ use std::io;
 mod utils;
 
 fn main() {
-    // To avoid compiler warnings with unused variables or function we can either:
-    // * Name it _
-    // * Or prefix it with _ (e.g. _length)
-
     // TODO to_owned()
     // TODO library (lib.rs) vs application (main.rs)
 
     cargo();
     comment();
-    primitives();
+    scalar_types();
+    variables();
+    const_static_variables();
     heap_stack();
     string();
     tuples();
@@ -46,15 +44,24 @@ fn main() {
 }
 
 fn cargo() {
-    // Building an application for testing
-    // $ cargo build
-    // Building for production, slowest to build but fastest at runtime because of extra optimizations
-    // $ cargo build --release
+    /*
+    Cargo is Rust's build system and package manager
+
+    Useful commands:
+    - Build an app for testing:
+      $ cargo build
+    - Build an app for production (slowest to build but fastest at runtime because of optimizations)
+      $ cargo build --release
+    - Checks your code to make sure it compiles (doesn't produce an excutable):
+      $ cargo check
+    - Run an app:
+      $ cargo run
+     */
 }
 
 /// A 3-slash comment is used to create an exportable documentation.
 /// It supports **Markdown**.
-/// It can be generated and visualized if the project is a library using $ cargo doc --open
+/// It can be generated and visualized if the project is a library using `$ cargo doc --open`
 fn comment() {
     // Single line comment
 
@@ -63,56 +70,70 @@ fn comment() {
      */
 
     //! Adds documentation to the item that contains the comment instead of the item following the comment
-    //! In this case, the comment function
+    //! In this case, the surrounding function: `comment`
 }
 
-fn primitives() {
+fn scalar_types() {
+    /*
+    Rust scalar types:
+    - Signed integers: i8, i16, i32, i64, i128, and isize (pointer size, depends on the architecture)
+    - Unsigned integers: u8, u16, u32, u64, u128, and usize (pointer size, depends on the architecture)
+    - Floating points: f32, f64
+    - Character: char
+    - Boolean: bool
+    - The unit type () whose only possible value is an empty tuple ()
+
+    Note on variable names: to avoid compiler warnings with unused variables or functions, we can either:
+    - Name it _
+    - Or prefix it with _ (e.g., _length)
+     */
+
     // Type inference
     let _ = 1;
     // The previous declaration is similar to this
     let _: i32 = 1;
 
-    // We can set the type during the declaration
+    // We can set the type alongside with the value
     let _ = 1i8;
 
-    // Integers: from i8 to i128
-    let _: i8 = 1;
-    let _: i128 = 1;
+    // bool
+    let _ = false;
+}
+
+fn variables() {
+    // Using let, a variable is immutable
+    let _s = 1;
+    // The following line would trigger a compilation error
+    // _s = 2;
+
+    // Using let mut, a variable is mutable
+    let mut _s = 1;
+    // Now we can mutate m
+    _s = 2;
+
+    // Shadowing: same name but different type
+    let _shadowed = 1;
+    let _shadowed = false;
 
     // Conversion
     let i: i64 = 1;
     let _ = i as i32;
+}
 
-    // Unsigned integers: from u8 to u128
-    let _: u8 = 1;
-    let _: u128 = 1;
-
-    // Integer or unsigned integer based on the architecture (32 or or 64 bits)
-    let _: isize = 1;
-    let _: usize = 1;
-
-    // bool
-    let _ = false;
-
-    // Shadowing
-    // Example: same name but different type
-    let _shadowed = "foo";
-    let _shadowed = false;
-
-    // Immutability
-    let _ = "foo";
-    // This will trigger a compilation error
-    // _ = "bar";
-    let mut _s = "bar";
-    // Now we can mutate m
-    _s = "bar";
-
-    // Const
+fn const_static_variables() {
+    // Const (convention: uppercase with underscores between words)
     const _FOO: f32 = 3.1;
 
-    // Static variable
+    // Immutable static variable
     static _BAR: i32 = 3;
+
+    // Static variable
+    static mut _BAZ: i32 = 3;
     // A static variable can be mutable compared to a constant
+    // Yet, it requires to be done inside an unsafe block
+    unsafe {
+        _BAZ = 4;
+    }
 }
 
 fn heap_stack() {
@@ -175,12 +196,14 @@ fn string() {
 }
 
 fn tuples() {
-    // A tuple collection of values of different types
-    let t = (true, 1);
+    // A tuple is a collection of values of different types
+    let _ = (true, 1);
+    // Same as
+    let t: (bool, i32) = (true, 1);
 
     // Assign elements from a tuple
-    let _: bool = t.0;
-    let _: i32 = t.1;
+    let _i: bool = t.0;
+    let _j: i32 = t.1;
 
     // Or with a single line
     let (_i, _j) = t;
@@ -190,13 +213,13 @@ fn control_flow() {
     // If/else
     let i = 1;
     if i < 2 {
-        // Will be true
+        // true
     } else {
-        // Will be false
+        // false
     }
 
     // If/else assignment
-    let _ = if i == 5 { true } else { false };
+    let _: bool = if i == 5 { true } else { false };
 }
 
 fn loops() {
@@ -236,8 +259,11 @@ fn loops() {
 }
 
 fn array() {
-    // Fixed size array
+    // Fixed size array of 5 i32 elements
+    let _ = [1, 2, 3, 4, 5];
+    // Same as
     let a: [i32; 5] = [1, 2, 3, 4, 5];
+
     // Access element
     let _ = a[0];
     // The following line does not compile as the array is not mutable
@@ -331,7 +357,8 @@ fn functions() {
     let _ = increment(1);
 
     // Higher order function
-    // Note that because of inference, the type is optional
+    let _ = increment;
+    // Same as
     let f: fn(i32) -> i32 = increment;
     let _ = f(1);
 
