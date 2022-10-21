@@ -34,6 +34,7 @@ fn main() {
     option();
     let _ = result();
     ownership();
+    copy();
     borrowing();
     dangling();
     lifetimes();
@@ -98,6 +99,9 @@ fn scalar_types() {
 
     // bool
     let _ = false;
+
+    // char
+    let _ = 'x';
 }
 
 fn variables() {
@@ -118,10 +122,14 @@ fn variables() {
     // Conversion
     let i: i64 = 1;
     let _ = i as i32;
+
+    // Variable names and functions are based on snake_case
+    let _apple_price = 32;
 }
 
 fn const_static_variables() {
-    // Const (convention: uppercase with underscores between words)
+    // Const (convention: SCREAMING_SNAKE_CASE; e.g., FOO_BAR_BAZ)
+    // Note that type inference doesn't work with constants
     const _FOO: f32 = 3.1;
 
     // Immutable static variable
@@ -137,23 +145,28 @@ fn const_static_variables() {
 }
 
 fn heap_stack() {
-    // Stack: fixed size variables (primitives or array of primitives)
-    // Memory is recaptured after the variable goes out of scope
-    // Default assignment is a copy
+    /*
+    Stack: fixed size data (primitives or array of primitives)
+    Memory is recaptured after the variable goes out of scope
+    Default assignment is a copy
 
-    // Heap: memory than can grow in size (vector, String, structs, etc.)
-    // Memory is recaptured after the last owner goes out of scope
-    // Default assignment is a transfer of ownership (see later)
-    // Slower than stack (contention, etc.)
+    Heap: data with an unknown size at compile time or a size that might change
+    (vector, String, structs, etc.)
+    Memory is recaptured after the last owner goes out of scope
+    Default assignment is a transfer of ownership (see later)
+
+    The heap is slower than the stack for pushing and accessing data
+     */
 }
 
 fn string() {
     // String slice
-    // Immutable, allocated on the stack (if declared from a literal) or the heap
+    // Immutable, allocated on the stack (if declared from a literal); otherwise, on the heap
     let s: &str = "foo";
 
     // Second type of string
     // Mutable (it declared with mut), allocated on the heap
+    // Note: The :: operator means that a function is associated to a type not to an instance (static in Java)
     let mut s2: String = String::from("foo");
 
     // Concatenation
@@ -165,6 +178,7 @@ fn string() {
     let _ = s2.as_str();
 
     // String slice is a reference to a subset of a string
+    // Range indices must occur at valid UTF-8 character boundaries
     // If we create a string slice in the middle of a multibyte character, the program will exit
     let s: String = String::from("foo");
     let _slice: &str = &s[1..2]; // o
@@ -227,7 +241,7 @@ fn loops() {
     for _ in 0..3 {}
 
     // Reverse
-    for _i in (1..3).rev() {}
+    for _ in (1..3).rev() {}
 
     // While
     // i has to be mutable
@@ -332,21 +346,31 @@ fn vector() {
     let _ = v.len();
     let _ = v.capacity();
 
-    // Iteration reference
-    // i being a &i32
-    for _i in &vec![1i32, 2, 3] {}
-    for _i in vec![1i32, 2, 3].iter() {}
-    // Iteration mutable reference
-    // i being an &mut i32
-    for _i in &mut vec![1i32, 2, 3] {}
-    for _i in vec![1i32, 2, 3].iter_mut() {}
-    // Iteration ownership: into_iter takes the ownership of the vector values
-    // i being an i32
-    let v = vec![1i32, 2, 3];
-    for _i in v {}
-    // After this operation, we cannot use v anymore
-    // Hence, the following line will not compile
-    // for _i in v {}
+    // Iteration
+    let v = vec![1, 2, 3];
+    for i in v {
+        // We can access i
+        println!("i={}", i);
+        // But we can't modify the values of the vector
+    }
+    // We can't access v anymore as the iteration took the ownership of v (see ownership())
+    // println!("v={:?}", v);
+    // Note that the loop was the same as
+    // for i in v.iter() {}
+
+    // If we want to keep accessing v, we need an iteration reference (i is a &i32)
+    let v = vec![1, 2, 3];
+    for _i in &v {}
+    println!("v={:?}", v);
+
+    // Mutable iteration (is is a &mut i32)
+    // Note that v has to be mutable
+    let mut v = vec![1, 2, 3];
+    for i in v.iter_mut() {
+        // Mutate the values of the vector
+        *i = *i * 2;
+    }
+    println!("v={:?}", v);
 
     // Copy a vector
     let _ = vec![1i32, 2, 3].to_vec();
@@ -373,6 +397,29 @@ fn increment(a: i32) -> i32 {
     a + 1
     // Equivalent to
     // return a + 1;
+
+    /*
+    Omitting return works only if the expression is the latest statement.
+    For example, the following doesn't compile:
+
+    fn calculate_price_of_apples(apples: i32) -> i32 {
+        if apples > MAX {
+            apples
+        }
+        apples * 2
+    }
+
+    Indeed, the `apples` statement isn't the last one of the function.
+    Yet, the following code compiles:
+
+    fn calculate_price_of_apples(apples: i32) -> i32 {
+        if apples > MAX {
+            apples
+        } else {
+            apples * 2
+        }
+    }
+     */
 }
 
 // Another simple function example
@@ -381,37 +428,37 @@ fn multiply(a: i32, b: i32) -> i32 {
 }
 
 fn structs() {
-    // 3 types of structs: C-like, tuple and units
+    // 3 types of structs: structs (C-like), tuple structs and unit structs
     // A structure is immutable by default
 
-    // C-like
+    /* Structs (C-like) */
+
     // We need to assign a value for each member of the structure otherwise it won't compile
     let person = CLikePerson {
         name: "foo".to_string(),
         age: 18,
     };
+
     // Access
     let _ = person.name;
     let _ = person.age;
+
     // Copy elements
     let _ = CLikePerson {
         name: "bar".to_string(),
         ..person // Copy the rest of the elements, does not compile without it
     };
+
     // If we hold variables whose name are the same than the fields, we can pass them directly
     let name = String::from("foo");
     let age = 1;
     let _ = CLikePerson { name, age };
 
-    // Tuple
-    let tuple_person = TuplePerson("foo".to_string(), 20);
-    // Accessing elements
-    let _ = tuple_person.0;
-
-    // Unit
-    // A simple structure without members
-    // TODO Use case?
-    let _ = UnitStruct;
+    // Note: Using the :? specifier inside the brackets tells println! to use the Debug output format
+    // It's possible because the struct has the #[derive(Debug)] annotation
+    println!("{:?}", person);
+    // The :#? specifier prints each field in a new line
+    println!("{:#?}", person);
 
     // There are three types of methods
     // First, calling using a &self
@@ -419,12 +466,25 @@ fn structs() {
     person.method1();
     // Second, passing a &mut self allowing the structure to be mutated within the method
     let mut mutable_person = CLikePerson {
-        name: "foo".to_string(),
+        name: String::from("foo"),
         age: 18,
     };
     mutable_person.method2();
     // Last, by transferring the ownership of the structure (see later)
     person.method3();
+
+    /* Tuple structs */
+
+    let tuple_person = TuplePerson(String::from("foo"), 20);
+    // Accessing elements
+    let _ = tuple_person.0;
+
+    /* Unit-like structs */
+
+    // A simple structure without members
+    // Useful in situation where we have to implement a trait on some type
+    // But we don't have any data that we want to store in the type itself
+    let _ = UnitStruct;
 }
 
 // C-like structure
@@ -434,12 +494,6 @@ struct CLikePerson {
     name: String,
     age: u32,
 }
-
-// Tuple structure
-struct TuplePerson(String, u32);
-
-// Unit structure
-struct UnitStruct;
 
 impl CLikePerson {
     fn method1(&self) {
@@ -453,6 +507,12 @@ impl CLikePerson {
     fn method3(self) {}
 }
 
+// Tuple structure
+struct TuplePerson(String, u32);
+
+// Unit structure
+struct UnitStruct;
+
 fn enums() {
     // Simple enum (based on units)
     let _ = Enum::Foo;
@@ -460,7 +520,7 @@ fn enums() {
 
     // Enum with variants
     let _ = EnumWithVariants::Foo { id: 1, age: 1 };
-    let _ = EnumWithVariants::Bar("foo".to_string());
+    let _ = EnumWithVariants::Bar(String::from("foo"));
     let _ = EnumWithVariants::Baz;
 }
 
@@ -564,8 +624,8 @@ fn impls_traits() {
     // Inheritance example
     // Ferrari implementing Vehicle and Car
     let _ = Ferrari {
-        id: "001".to_string(),
-        color: "red".to_string(),
+        id: String::from("001"),
+        color: String::from("red"),
     };
 }
 
@@ -899,14 +959,22 @@ fn ownership() {
 
     // When a variable goes out of scope, the memory is automatically returned
     {
-        let _ = 1;
+        let _i = 1;
     } // i being out of scope at this stage, it is freed
 
-    // This example assign a primitive
-    // Hence, the value is copied to j
+    let i = String::from("hello");
+    let _j = i;
+    // The following line doesn't compile as we transferred the ownership to _j
+    // println!("{}", i);
+    // We say that i was moved into _j
+
+    // Yet, in this example the data is a primitive primitive
+    // Hence, the value is copied, not transferred to j
     // Both are owners of an i32 value
     let i = 1;
     let _j = i;
+    // Hence, this line compiles
+    println!("{}", i);
 
     // A copy is used if the value:
     // * Is a primitive
@@ -918,22 +986,18 @@ fn ownership() {
     // Hence, it is valid to access both arrays at this stage
     println!("v={:?}, v2={:?}", a, a2);
 
-    let s = String::from("foo");
-    // We transfer the ownership of the string value to s2
-    let _ = s;
-    // Hence, Rust will free s so the following line will not compile anymore
-    // println!("{:?}", s);
-
     // The semantics for passing a value to a function is similar to variable assignment
     let s = String::from("foo");
     takes_ownership(s);
-    // At this stage, we cannot use s anymore
+    // At this stage, we cannot use s anymore and we call this moving a variable
     // Returning a value from a function does also transfer ownership
 
     // Having a method that takes ownership of the instance by using just self is rare
-    // Usually used when the method transforms self into something else
+    // It's usually used when the method transforms self into something else
     // Hence, we want to prevent the caller from using the original instance
     Foo {}.bar();
+
+    // As a summary, an assignment or passing/returning a variable to/from a function is either a move or a copy
 }
 
 fn takes_ownership(_: String) {}
@@ -944,6 +1008,24 @@ impl Foo {
     fn bar(self) {}
 }
 
+fn copy() {
+    let i = String::from("hello");
+    let _j = i.clone();
+    // Note: doing _j = i means the String data is copied (pointer, length, and capacity)
+    // These elements are stored on the stack, we don't copy the data on the heap that the pointer refers to
+
+    // Regarding copies, Rust never automatically creates deep copies of the data
+    // If we do want to deeply copy data of a string, for example, not just the stack data, we have to use the clone method
+    let i = String::from("hello");
+    let _j = i.clone();
+
+    // Types that implement the Copy trait:
+    // * Primitives
+    // * Tuple of Copy types
+
+    // TODO: Copy trait
+}
+
 fn borrowing() {
     // To reuse a resource, we have to borrow it
     // Borrowing is about passing variable bindings either:
@@ -951,14 +1033,12 @@ fn borrowing() {
     // * Or to other variable bindings
 
     // Two types of borrowing:
-    // * Shared: data can be borrowed by multiple users but should not be altered
+    // * Shared: data can be borrowed by multiple users but must not be altered
     // * Mutable: data can be borrowed and altered by a single user
 
     // Benefit of these restrictions: data race analysis done by the compiler
 
-    // Rules:
-    // 1. A borrow is either a shared or a mutable
-    // 2. Borrowing applies for both copy and move
+    // Borrowing applies for both copies and moves
 
     // Shared borrowing
     // Multiple immutable references are allowed
@@ -975,7 +1055,7 @@ fn borrowing() {
     let mut v1 = vec![1, 2, 3];
     let v2 = &mut v1;
     // Does not compile as a mutable borrow is owned by a single user
-    // println!("v={:?}, v2={:?}", v, v2);
+    // println!("v1={:?}, v2={:?}", v1, v2);
     // Here, only v2 should read and access the vector
     v2[0] = 10;
     let _ = v2[0];
@@ -998,6 +1078,12 @@ fn borrowing() {
 
     // Does not compile
     // let s3 = &mut s;
+
+    // Rules summary:
+    // * At any time, you can have either but not both:
+    //      * One mutable reference
+    //      * Any number of immutable references
+    // * References must always be valid
 }
 
 fn function_accepting_shared_borrowing_vector(_: &Vec<i32>) {}
