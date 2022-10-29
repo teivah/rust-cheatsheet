@@ -89,60 +89,61 @@ fn scalar_types() {
     Note on variable names: to avoid compiler warnings with unused variables or functions, we can either:
     - Name it _
     - Or prefix it with _ (e.g., _length)
+    - Import #![allow(unused)] as done in this file
      */
 
     // Type inference
-    let _ = 1;
+    let i = 1;
     // The previous declaration is similar to this
-    let _: i32 = 1;
+    let i: i32 = 1;
 
     // We can set the type alongside with the value
-    let _ = 1i8;
+    let i = 1i8;
 
     // bool
-    let _ = false;
+    let b = false;
 
     // char
-    let _ = 'x';
+    let c = 'x';
 }
 
 fn variables() {
     // Using let, a variable is immutable
-    let _s = 1;
+    let s = 1;
     // The following line would trigger a compilation error
-    // _s = 2;
+    // s = 2;
 
     // Using let mut, a variable is mutable
-    let mut _s = 1;
+    let mut s = 1;
     // Now we can mutate m
-    _s = 2;
+    s = 2;
 
     // Shadowing: same name but different type
-    let _shadowed = 1;
-    let _shadowed = false;
+    let shadowed = 1;
+    let shadowed = false;
 
     // Conversion
     let i: i64 = 1;
-    let _ = i as i32;
+    let j = i as i32;
 
     // Variable names and functions are based on snake_case
-    let _apple_price = 32;
+    let apple_price = 32;
 }
 
 fn const_static_variables() {
     // Const (convention: SCREAMING_SNAKE_CASE; e.g., FOO_BAR_BAZ)
     // Note that type inference doesn't work with constants
-    const _FOO: f32 = 3.1;
+    const FOO: f32 = 3.1;
 
     // Immutable static variable
-    static _BAR: i32 = 3;
+    static BAR: i32 = 3;
 
     // Static variable
-    static mut _BAZ: i32 = 3;
+    static mut BAZ: i32 = 3;
     // A static variable can be mutable compared to a constant
     // Yet, it requires to be done inside an unsafe block
     unsafe {
-        _BAZ = 4;
+        BAZ = 4;
     }
 }
 
@@ -176,53 +177,53 @@ fn string() {
     s2.push_str("bar");
 
     // Convert from and to string literal
-    let _ = s.to_string();
-    let _ = s2.as_str();
+    let s = s.to_string();
+    let s = s2.as_str();
 
     // String slice is a reference to a subset of a string
     // Range indices must occur at valid UTF-8 character boundaries
     // If we create a string slice in the middle of a multibyte character, the program will exit
     let s: String = String::from("foo");
-    let _slice: &str = &s[1..2]; // o
-    let _slice: &str = &s[..2]; // fo
-    let _slice: &str = &s[1..]; // oo
-    let _slice: &str = &s[..]; // foo
+    let slice: &str = &s[1..2]; // o
+    let slice: &str = &s[..2]; // fo
+    let slice: &str = &s[1..]; // oo
+    let slice: &str = &s[..]; // foo
 
     // String format
     let i = 1;
-    let _s = format!["foo {}", i];
+    let s = format!["foo {}", i];
 
     // String concatenation
     let s1: String = String::from("foo");
     let s2: String = String::from("bar");
-    let _: String = s1 + &s2;
+    let s: String = s1 + &s2;
     // String slice concatenation
     let s1: &str = "foo";
     let s2: &str = "foo";
-    let _: String = s1.to_owned() + &s2.to_owned();
+    let s: String = s1.to_owned() + &s2.to_owned();
 
     // The following operation is not possible
     // A char can be encoded on multiple bytes
     // Rust does not allow this as may access an invalid character on its own
-    // let _ = s[0];
+    // let c = s[0];
     // Instead, we have to iterate to get each grapheme clusters (a letter)
-    for _c in "foo".chars() {}
+    for c in "foo".chars() {}
     // Or we can slice the string to get particular bytes
-    let _s: &str = &"foo"[..1];
+    let s: &str = &"foo"[..1];
 }
 
 fn tuples() {
     // A tuple is a collection of values of different types
-    let _ = (true, 1);
+    let t = (true, 1);
     // Same as
     let t: (bool, i32) = (true, 1);
 
     // Assign elements from a tuple
-    let _i: bool = t.0;
-    let _j: i32 = t.1;
+    let i: bool = t.0;
+    let j: i32 = t.1;
 
     // Or with a single line
-    let (_i, _j) = t;
+    let (i, j) = t;
 }
 
 fn control_flow() {
@@ -235,15 +236,17 @@ fn control_flow() {
     }
 
     // If/else assignment
-    let _: bool = if i == 5 { true } else { false };
+    let n: bool = if i == 5 { true } else { false };
 }
 
 fn loops() {
     // For (included..excluded)
-    for _ in 0..3 {}
+    for i in 0..3 {}
 
-    // Reverse
-    for _ in (1..3).rev() {}
+    // Reverse, end excluded
+    for i in (1..3).rev() {}
+    // Reverse, end included
+    for i in (1..=3).rev() {}
 
     // While
     // i has to be mutable
@@ -265,7 +268,7 @@ fn loops() {
 
     // Loop assignement
     let mut sum = 0;
-    let _: bool = loop {
+    let b: bool = loop {
         sum += i;
         i += 1;
         if i == 3 {
@@ -276,12 +279,12 @@ fn loops() {
 
 fn array() {
     // Fixed size array of 5 i32 elements
-    let _ = [1, 2, 3, 4, 5];
+    let a = [1, 2, 3, 4, 5];
     // Same as
     let a: [i32; 5] = [1, 2, 3, 4, 5];
 
     // Access element
-    let _ = a[0];
+    let i = a[0];
     // The following line does not compile as the array is not mutable
     // a[1] = 10;
     // In order to mutate it we have to declare it mutable
@@ -292,28 +295,28 @@ fn array() {
     let a: [i32; 5] = [0; 5];
 
     // Get array length: 5
-    let _ = a.len();
+    let n = a.len();
 
     // Create slice from array
     // A slice is a pointer on an array (it is not resizable)
-    let _: &[i32] = &a;
+    let p: &[i32] = &a;
     // We cannot modify a slice regardless if the backed array is mutable or not
     // s[1] = 6;
 
     // Create slice from sub array (included/excluded)
     let s = &a[1..3];
     // Slice length is 2
-    let _ = s.len();
+    let n = s.len();
 
     // Array iteration
     let a: [&str; 3] = ["foo", "bar", "baz"];
     // Over each element index
     for i in 0..a.len() {
-        let _ = a[i];
+        let n = a[i];
     }
     // Or directly over each element
     for element in a.iter() {
-        let _ = element;
+        let n = element;
     }
 }
 
@@ -322,11 +325,11 @@ fn vector() {
     // It is backed by an array, with a length and capacity
 
     // Initialization - 0 capacity
-    let _: Vec<i32> = Vec::new();
+    let v: Vec<i32> = Vec::new();
     // Initialization using a macro - 0 capacity
-    let _: Vec<i32> = vec![];
+    let v: Vec<i32> = vec![];
     // Initialization with i32 values
-    let _ = vec![1i32, 2, 3];
+    let v = vec![1i32, 2, 3];
     // Initialization with initial capacity and mutable
     let mut v: Vec<i32> = Vec::with_capacity(10);
 
@@ -340,13 +343,13 @@ fn vector() {
     v.pop(); // [20]
 
     // Get an element returns an option (see later)
-    let _: Option<&i32> = v.get(0);
+    let o: Option<&i32> = v.get(0);
     // Accessing an index outside the vector will not panic, it returns a None (see later)
-    let _: Option<&i32> = v.get(100);
+    let o: Option<&i32> = v.get(100);
 
     // Get vector length and capacity
-    let _ = v.len();
-    let _ = v.capacity();
+    let n = v.len();
+    let n = v.capacity();
 
     // Iteration
     let v = vec![1, 2, 3];
@@ -362,7 +365,7 @@ fn vector() {
 
     // If we want to keep accessing v, we need an iteration reference (i is a &i32)
     let v = vec![1, 2, 3];
-    for _i in &v {}
+    for i in &v {}
     println!("v={:?}", v);
 
     // Mutable iteration (is is a &mut i32)
@@ -375,22 +378,22 @@ fn vector() {
     println!("v={:?}", v);
 
     // Copy a vector
-    let _ = vec![1i32, 2, 3].to_vec();
+    let v = vec![1i32, 2, 3].to_vec();
 }
 
 fn functions() {
     // Function call
-    let _ = increment(1);
+    let n = increment(1);
 
     // Higher order function
-    let _ = increment;
+    let f = increment;
     // Same as
     let f: fn(i32) -> i32 = increment;
-    let _ = f(1);
+    let n = f(1);
 
     // Partially applied function
     let partially_applied_functions = |x| multiply(3, x);
-    let _ = partially_applied_functions(6);
+    let f = partially_applied_functions(6);
 }
 
 // A simple function example
@@ -442,11 +445,11 @@ fn structs() {
     };
 
     // Access
-    let _ = person.name;
-    let _ = person.age;
+    let s = person.name;
+    let s = person.age;
 
     // Copy elements
-    let _ = CLikePerson {
+    let s = CLikePerson {
         name: "bar".to_string(),
         ..person // Copy the rest of the elements, does not compile without it
     };
@@ -454,8 +457,12 @@ fn structs() {
     // If we hold variables whose name are the same than the fields, we can pass them directly
     let name = String::from("foo");
     let age = 1;
-    let _ = CLikePerson { name, age };
+    let p = CLikePerson { name, age };
 
+    let person = CLikePerson {
+        name: "foo".to_string(),
+        age: 18,
+    };
     // Note: Using the :? specifier inside the brackets tells println! to use the Debug output format
     // It's possible because the struct has the #[derive(Debug)] annotation
     println!("{:?}", person);
@@ -479,14 +486,14 @@ fn structs() {
 
     let tuple_person = TuplePerson(String::from("foo"), 20);
     // Accessing elements
-    let _ = tuple_person.0;
+    let n = tuple_person.0;
 
     /* Unit-like structs */
 
     // A simple structure without members
     // Useful in situation where we have to implement a trait on some type
     // But we don't have any data that we want to store in the type itself
-    let _ = UnitStruct;
+    let n = UnitStruct;
 }
 
 // C-like structure
@@ -510,7 +517,7 @@ impl CLikePerson {
 
     // An impl block can also contain functions called associated functions
     // Use cases: constructors or functions used only by methods of CLikePerson
-    fn _factory(name: String, age: u32) -> CLikePerson {
+    fn factory(name: String, age: u32) -> CLikePerson {
         CLikePerson { name, age }
     }
 }
@@ -526,13 +533,13 @@ struct UnitStruct;
 
 fn enums() {
     // Simple enum (based on units)
-    let _ = Enum::Foo;
-    let _ = Enum::Bar;
+    let e = Enum::Foo;
+    let e = Enum::Bar;
 
     // Enum with variants
-    let _ = EnumWithVariants::Foo { id: 1, age: 1 };
-    let _ = EnumWithVariants::Bar(String::from("foo"));
-    let _ = EnumWithVariants::Baz;
+    let e = EnumWithVariants::Foo { id: 1, age: 1 };
+    let e = EnumWithVariants::Bar(String::from("foo"));
+    let e = EnumWithVariants::Baz;
 }
 
 enum Enum {
@@ -553,21 +560,21 @@ fn closures() {
     // Fn: immutable borrow
 
     // Closure example
-    let _ = |x: i32, y: i32| -> i32 { x + y };
+    let c = |x: i32, y: i32| -> i32 { x + y };
 
     // To force a closure to take ownership of the values we can use move keyword
-    let _ = move |x: Point| -> Point { x };
+    let c = move |x: Point| -> Point { x };
 
     // Direct closure call
-    let _: i32 = { 1 + 2 };
+    let c: i32 = { 1 + 2 };
 
     // A struct can hold a closure
     let s = StructWithClosure { f: |x| x + 1 };
-    let _ = (s.f)(1);
+    let n = (s.f)(1);
 
     // A structure holding a closure with generics (see later)
     let s = StructWithClosureAndGenerics { f: |x| x + 1 };
-    let _ = (s.f)(1);
+    let n = (s.f)(1);
 }
 
 struct StructWithClosure {
@@ -583,7 +590,7 @@ where
 
 fn collections_map() {
     // Hashmap creation
-    let _: HashMap<String, i32> = HashMap::new();
+    let m: HashMap<String, i32> = HashMap::new();
     // With initial capacity
     let mut map: HashMap<String, i32> = HashMap::with_capacity(32);
 
@@ -593,10 +600,10 @@ fn collections_map() {
     map.insert(s, i);
     // If a type implements the Copy trait (e.g. i32), the values are copied into the hash map
     // Hence it is valid to reuse i
-    let _ = i;
+    let n = i;
     // Otherwise, the values are moved
     // Hence, as it is invalid to reuse s, the following line wille not compile
-    // let _s2 = s;
+    // let s2 = s;
 
     // Insert if the key does not already exist
     let v: &mut i32 = map.entry(String::from("two")).or_insert(2);
@@ -605,7 +612,7 @@ fn collections_map() {
 
     // Iteration
     // key is an &String whereas value is an &i32
-    for (_key, _value) in &map {}
+    for (key, value) in &map {}
 
     // Create a hashmap from two vectors
     let v1 = vec![
@@ -614,12 +621,12 @@ fn collections_map() {
         String::from("three"),
     ];
     let v2 = vec![1, 2, 3];
-    let _: HashMap<&String, &i32> = v1.iter().zip(v2.iter()).collect();
+    let m: HashMap<&String, &i32> = v1.iter().zip(v2.iter()).collect();
 }
 
 fn impls_traits() {
     // An impl is used to define method for structs and enums
-    let _ = Point { x: 1, y: 1 }.foo(Point { x: 2, y: 2 });
+    let p = Point { x: 1, y: 1 }.foo(Point { x: 2, y: 2 });
 
     // An associated (static) function call
     let point = Point::new(1, 1);
@@ -630,11 +637,11 @@ fn impls_traits() {
     function_accepting_trait(&point);
 
     // Point also implements the generic trait TraitWithGenerics
-    let _ = Point::convert_to_tuple(Point { x: 1, y: 1 });
+    let p = Point::convert_to_tuple(Point { x: 1, y: 1 });
 
     // Inheritance example
     // Ferrari implementing Vehicle and Car
-    let _ = Ferrari {
+    let f = Ferrari {
         id: String::from("001"),
         color: String::from("red"),
     };
@@ -729,14 +736,14 @@ fn pattern_matching() {
     let i = 1;
     // The match has to cover all the cases
     // The following example does not compile if we omit the last case
-    let _ = match i {
+    let n = match i {
         0 => "zero",
         1 => "one",
         _ => "other", // Other cases
     };
 
     // If we want to do nothing
-    let _ = match i {
+    let n = match i {
         0 => println!("zero"),
         _ => (),
     };
@@ -745,7 +752,7 @@ fn pattern_matching() {
     // It uses std::cmp::Ordering
     let i = 1;
     let j = 2;
-    let _ = match i.cmp(&j) {
+    let n = match i.cmp(&j) {
         Ordering::Less => "less",
         Ordering::Greater => "greater",
         Ordering::Equal => "equals",
@@ -753,7 +760,7 @@ fn pattern_matching() {
 
     // Matching an interval
     let level = 22;
-    let _ = match level {
+    let n = match level {
         1..=5 => "beginner",
         6..=10 => "intermediate",
         11..=20 => "expert",
@@ -763,7 +770,7 @@ fn pattern_matching() {
     // Pattern matching on a tuple
     let i = 1;
     let j = 1;
-    let _ = match (i, j) {
+    let n = match (i, j) {
         (1, 2) => "one, two",
         // Default values on a single element
         (1, _) => "1, default", // This is the one that will be matched
@@ -821,9 +828,9 @@ fn generics() {
 
     // Generic function call
     // The function accepts only structures implementing Trait
-    let _ = generic_function(Point { x: 1, y: 1 }, Point { x: 1, y: 1 });
+    let p = generic_function(Point { x: 1, y: 1 }, Point { x: 1, y: 1 });
     // This is different that the following function that accepts Trait implementation
-    let _ = function_accepting_implementation(Point { x: 1, y: 1 }, Point { x: 1, y: 1 });
+    let p = function_accepting_implementation(Point { x: 1, y: 1 }, Point { x: 1, y: 1 });
     // In the first example, we have to passe the same structure type
     // In the second example, we can pass two different structure types as long as they both implement Trait
 
@@ -837,14 +844,14 @@ fn generics() {
     println!("{} {}", s.x, s.y);
 
     // A generic implementation
-    let _ = s.generic_function();
+    let p = s.generic_function();
 
     // A specific implementation for GenericStruct<i32> only
-    let _ = s.specific_function();
+    let i = s.specific_function();
 
     // Instantiate a generic enum
-    let _ = GenericEnum::<i32, String>::Foo(1);
-    let _ = GenericEnum::<i32, String>::Bar("foo".to_string());
+    let p = GenericEnum::<i32, String>::Foo(1);
+    let p = GenericEnum::<i32, String>::Bar("foo".to_string());
 }
 
 fn generic_function<T: Trait>(x: T, _: T) -> T {
@@ -900,7 +907,6 @@ fn option() {
      */
 
     let option: Option<String> = option_example(0);
-    option.
     // We use pattern matching to check an option
     match option {
         None => println!("none"),
@@ -910,15 +916,15 @@ fn option() {
     // We can also map directly a result using expect
     // The code will panic if result contains an error
     let option = option_example(0);
-    let _: String = option.expect("foo");
+    let s: String = option.expect("foo");
 
     // We can use unwrap to get the value
     // Yet, it panics if the option is None
     let option = option_example(0);
-    let _: String = option.unwrap();
+    let s: String = option.unwrap();
 
     // unwrap_or_else takes a closure to return a default value
-    let _: String = option_example(0).unwrap_or_else(|| String::from("foo"));
+    let s: String = option_example(0).unwrap_or_else(|| String::from("foo"));
 }
 
 fn option_example(i: i32) -> Option<String> {
@@ -939,12 +945,12 @@ fn result() -> Result<i32, io::Error> {
 
     // We can also map directly a result using expect
     // The code will panic if result contains an error
-    let _i: i32 = result.expect("foo");
+    let i: i32 = result.expect("foo");
     // Panic if the result contains an error
-    let _i: i32 = result.unwrap();
+    let i: i32 = result.unwrap();
 
     // A function calling another function that returns a result can use the ? operator
-    let _result = result_caller(1, 0);
+    let result = result_caller(1, 0);
 
     Ok(0) // Just to comply with the function signature
 }
@@ -981,16 +987,16 @@ fn ownership() {
     } // i being out of scope at this stage, it is freed
 
     let i = String::from("hello");
-    let _j = i;
-    // The following line doesn't compile as we transferred the ownership to _j
+    let j = i;
+    // The following line doesn't compile as we transferred the ownership to j
     // println!("{}", i);
-    // We say that i was moved into _j
+    // We say that i was moved into j
 
     // Yet, in this example the data is a primitive primitive
     // Hence, the value is copied, not transferred to j
     // Both are owners of an i32 value
     let i = 1;
-    let _j = i;
+    let j = i;
     // Hence, this line compiles
     println!("{}", i);
 
@@ -1028,14 +1034,14 @@ impl Foo {
 
 fn copy() {
     let i = String::from("hello");
-    let _j = i.clone();
-    // Note: doing _j = i means the String data is copied (pointer, length, and capacity)
+    let j = i.clone();
+    // Note: doing j = i means the String data is copied (pointer, length, and capacity)
     // These elements are stored on the stack, we don't copy the data on the heap that the pointer refers to
 
     // Regarding copies, Rust never automatically creates deep copies of the data
     // If we do want to deeply copy data of a string, for example, not just the stack data, we have to use the clone method
     let i = String::from("hello");
-    let _j = i.clone();
+    let j = i.clone();
 
     // Types that implement the Copy trait:
     // * Primitives
@@ -1076,7 +1082,7 @@ fn borrowing() {
     // println!("v1={:?}, v2={:?}", v1, v2);
     // Here, only v2 should read and access the vector
     v2[0] = 10;
-    let _ = v2[0];
+    let i = v2[0];
 
     // The same applies while calling a function
     // Shared borrowing
@@ -1091,8 +1097,8 @@ fn borrowing() {
     // Also, it's not possible to have a mutable reference while having an immutable one first
     // Users of an immutable reference don't expect the value to change
     let s = String::from("foo");
-    let _ = &s; // First immutable reference
-    let _ = &s; // Second immutable reference
+    let s1 = &s; // First immutable reference
+    let s2 = &s; // Second immutable reference
 
     // Does not compile
     // let s3 = &mut s;
@@ -1138,10 +1144,10 @@ fn lifetimes() {
     // the lifetime of self is assigned to all output lifetime parameters
 
     // This code does not compile
-    let _s1;
+    let s1;
     {
         let s2 = String::from("foo");
-        _s1 = &s2;
+        s1 = &s2;
     }
     // The following code will raise the following error:
     // "borrowed value does not live long enough"
@@ -1162,27 +1168,27 @@ fn lifetimes() {
     // Rust can't tell whether the reference returned refers to x or y
 
     // Instead, we have to set a lifetime annotation
-    let _ = longest_with_lifetime("foo", "bar");
+    let n = longest_with_lifetime("foo", "bar");
 
     // In this example, the function returns the input reference
     // Hence, the compiler does not need to know what's the lifetime
     // We could have omitted the lifetime annotation
     let s1 = "foo";
-    let _ = _function_with_useless_lifetime(s1);
+    let s2 = function_with_useless_lifetime(s1);
 
     // Returning a static reference
-    let _ = lifetime_function_static();
+    let s = lifetime_function_static();
 
     // Lifetime on a structure
-    let x = _LifetimeStruct { s: "foo" };
+    let x = LifetimeStruct { s: "foo" };
     println!("{}", x.s);
 
     // All string literals have the 'static lifetime
     // The text of this string is stored directly in the binary of the program
-    let _: &'static str = "I have a static lifetime.";
+    let s: &'static str = "I have a static lifetime.";
 
     // Generics and lifetimes
-    let _ = generics_with_lifetimes(&Point { x: 1, y: 1 });
+    let p = generics_with_lifetimes(&Point { x: 1, y: 1 });
 }
 
 // Inputs and output share the same lifetime
@@ -1194,7 +1200,7 @@ fn longest_with_lifetime<'a>(x: &'a str, y: &'a str) -> &'a str {
     }
 }
 
-fn _function_with_useless_lifetime<'a>(s: &'a str) -> &'a str {
+fn function_with_useless_lifetime<'a>(s: &'a str) -> &'a str {
     s
 }
 
@@ -1203,7 +1209,7 @@ fn lifetime_function_static() -> &'static str {
     "foo"
 }
 
-struct _LifetimeStruct<'a> {
+struct LifetimeStruct<'a> {
     // s should live as long as LifetimeStruct exists
     s: &'a str,
 }
@@ -1243,7 +1249,7 @@ fn panicking() {
     // If we enter a route we should not
     // Panic "internal error: entered unreachable code"
     let level = 18;
-    let _ = match level {
+    let s = match level {
         1..=5 => "beginner",
         6..=10 => "intermediate",
         11..=20 => "expert",
@@ -1260,18 +1266,18 @@ fn iterator() {
 
     // Get nth prime number
     let n = 5;
-    let _: Option<i32> = (1..).filter(|i| is_prime_number(*i)).nth(n);
+    let o: Option<i32> = (1..).filter(|i| is_prime_number(*i)).nth(n);
 
     // An example producing a vector or i32 by mapping each element and collecting the results
     // We iterate from i1 to i2 (included because of =i2) reversely
     let i1 = 0;
     let i2 = 10;
     // increment being a i32->i32 function
-    let _: Vec<i32> = (i1..=i2).rev().map(increment).collect::<Vec<_>>();
+    let v: Vec<i32> = (i1..=i2).rev().map(increment).collect::<Vec<_>>();
 
     // Chaining example with a single element
     // It produces: 1,2,3,4
-    let _: String = (1..3)
+    let s: String = (1..3)
         .map(|x| x.to_string())
         .chain(std::iter::once("4".to_string()))
         .collect::<Vec<_>>()
@@ -1279,7 +1285,7 @@ fn iterator() {
 
     // Custom iterator
     let mut custom_iterator = CustomIterator::new(vec![1, 2, 3]);
-    let _ = custom_iterator.next(); // 1
+    let o = custom_iterator.next(); // 1
 }
 
 struct CustomIterator {
@@ -1322,7 +1328,7 @@ fn testing() {
     // To avoid running tests in parallel: $cargo test -- --test-threads=1
 }
 
-fn _sum(i: i32, j: i32) -> i32 {
+fn sum(i: i32, j: i32) -> i32 {
     i + j
 }
 
@@ -1334,6 +1340,6 @@ mod tests {
     #[test]
     // We can use #[ignore] to ignore a test
     fn test_sum() {
-        assert_eq!(_sum(2, 2), 4);
+        assert_eq!(sum(2, 2), 4);
     }
 }
