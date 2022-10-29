@@ -461,16 +461,16 @@ fn structs() {
     println!("{:#?}", person);
 
     // There are three types of methods
-    // First, calling using a &self
-    // This does not allow the structure to be mutated
+    // 1. Calling using a &self
+    // The method doesn't take ownership and can't mutate the structure
     person.method1();
-    // Second, passing a &mut self allowing the structure to be mutated within the method
+    // 2. Passing a &mut self allowing the structure to be mutated within the method
     let mut mutable_person = CLikePerson {
         name: String::from("foo"),
         age: 18,
     };
     mutable_person.method2();
-    // Last, by transferring the ownership of the structure (see later)
+    // 3. Transferring the ownership of the structure (see ownership())
     person.method3();
 
     /* Tuple structs */
@@ -505,7 +505,16 @@ impl CLikePerson {
         self.age = 20;
     }
     fn method3(self) {}
+
+    // An impl block can also contain functions called associated functions
+    // Use cases: constructors or functions used only by methods of CLikePerson
+    fn _factory(name: String, age: u32) -> CLikePerson {
+        CLikePerson { name, age }
+    }
 }
+
+// Note that it's allowed to have multiple impl blocks for the same struct
+impl CLikePerson {}
 
 // Tuple structure
 struct TuplePerson(String, u32);
@@ -878,11 +887,18 @@ enum GenericEnum<T, E> {
 }
 
 fn option() {
-    // Rust does not have nulls. Instead, it has an enum that can encode this concept of present or absent.
+    // Rust does not have nulls
+    // Instead, it has an Option enum that can encode the concept of a value being present or absent
+    // Option means the possibility of absence:
+    /*
+    enum Option<T> {
+        Some(T),
+        None,
+    }
+     */
 
-    // Option means the possibility of absence
-    let option = option_example(0);
-
+    let option: Option<String> = option_example(0);
+    option.
     // We use pattern matching to check an option
     match option {
         None => println!("none"),
@@ -899,7 +915,7 @@ fn option() {
     let option = option_example(0);
     let _: String = option.unwrap();
 
-    // unwrap_or_else takes a closure to return a defaault value
+    // unwrap_or_else takes a closure to return a default value
     let _: String = option_example(0).unwrap_or_else(|| String::from("foo"));
 }
 
