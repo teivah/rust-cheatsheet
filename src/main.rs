@@ -10,6 +10,7 @@ mod utils;
 fn main() {
     // TODO to_owned()
     // TODO library (lib.rs) vs application (main.rs)
+    // TODO Chapter 7
 
     cargo();
     comment();
@@ -745,7 +746,7 @@ fn pattern_matching() {
     // If we want to do nothing
     let n = match i {
         0 => println!("zero"),
-        _ => (),
+        _ => (), // () is the unit value, so nothing will happen in this case
     };
 
     // Comparing integers
@@ -790,7 +791,7 @@ fn pattern_matching() {
 
 fn if_let() {
     // If we need a match that runs code when the value matches one pattern only, we can use if let
-    let e = EnumWithVariants::Bar("foo".to_string());
+    let e = EnumWithVariants::Foo { age: 1, id: 3 };
     if let EnumWithVariants::Foo { id, age } = e {
         println!("id={}, age={}", id, age);
     }
