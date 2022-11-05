@@ -28,7 +28,7 @@ fn main() {
     structs();
     enums();
     closures();
-    collections_map();
+    hashmap();
     impls_traits();
     pattern_matching();
     if_let();
@@ -41,7 +41,7 @@ fn main() {
     borrowing();
     dangling();
     lifetimes();
-    panicking();
+    panic();
     iterator();
     smart_pointers();
     testing();
@@ -170,25 +170,35 @@ fn string() {
 
     // Second type of string
     // Mutable (it declared with mut), allocated on the heap
+    // A string is a wrapper over a Vec<u8>
     // Note: The :: operator means that a function is associated to a type not to an instance (static in Java)
     let mut s2: String = String::from("foo");
 
     // Concatenation
-    let s: &str = &[s, "bar"].concat();
-    s2.push_str("bar");
+    // With String type
+    let mut s = String::from("abc");
+    s.push('d');
+    s.push_str("bar");
+    // With a string slice
+    let s1: &str = "foo";
+    let s2: &str = &[s1, "bar"].concat();
 
     // Convert from and to string literal
-    let s = s.to_string();
-    let s = s2.as_str();
+    let s1 = "abc";
+    let s2 = s1.to_string();
+    let s1 = s2.as_str();
 
     // String slice is a reference to a subset of a string
     // Range indices must occur at valid UTF-8 character boundaries
-    // If we create a string slice in the middle of a multibyte character, the program will exit
     let s: String = String::from("foo");
     let slice: &str = &s[1..2]; // o
     let slice: &str = &s[..2]; // fo
     let slice: &str = &s[1..]; // oo
     let slice: &str = &s[..]; // foo
+
+    // If we create a string slice in the middle of a multibyte character, the program will panic
+    let s = String::from("д");
+    // let slice = &s[0..1];
 
     // String format
     let i = 1;
@@ -211,6 +221,11 @@ fn string() {
     for c in "foo".chars() {}
     // Or we can slice the string to get particular bytes
     let s: &str = &"foo"[..1];
+
+    // Note: the convention in the standard library is:
+    // * String: Owned variant
+    // * Str: Borrowed variant
+    // For example, the 0sString type is owned whereas 0sStr is borrowed
 }
 
 fn tuples() {
@@ -326,6 +341,8 @@ fn vector() {
     // It is backed by an array, with a length and capacity
 
     // Initialization - 0 capacity
+    // The type has to be set: as we don't insert any values, Rust doesn't know what kind of
+    // elements we intend to store
     let v: Vec<i32> = Vec::new();
     // Initialization using a macro - 0 capacity
     let v: Vec<i32> = vec![];
@@ -347,6 +364,10 @@ fn vector() {
     let o: Option<&i32> = v.get(0);
     // Accessing an index outside the vector will not panic, it returns a None (see later)
     let o: Option<&i32> = v.get(100);
+
+    // We can also access an element directly using its index but in this case, accessing an index
+    // outside the vector will panic
+    // let o = v[100];
 
     // Get vector length and capacity
     let n = v.len();
@@ -380,6 +401,15 @@ fn vector() {
 
     // Copy a vector
     let v = vec![1i32, 2, 3].to_vec();
+
+    let mut v = vec![1, 2, 3];
+    let first = &v[0];
+    v.push(4);
+    // The following line doesn't compile
+    // Indeed, when we push an element, the vector might require allocating new memory and copying
+    // the old elements to the new space. In that case, the reference to the first element would
+    // be pointing to deallocated memory.
+    // println!("{}", first);
 }
 
 fn functions() {
@@ -589,11 +619,13 @@ where
     f: T,
 }
 
-fn collections_map() {
+fn hashmap() {
     // Hashmap creation
     let m: HashMap<String, i32> = HashMap::new();
     // With initial capacity
     let mut map: HashMap<String, i32> = HashMap::with_capacity(32);
+
+    // Note: a map stores its data on the heap
 
     // Insert elements
     let s = String::from("one");
@@ -622,7 +654,9 @@ fn collections_map() {
         String::from("three"),
     ];
     let v2 = vec![1, 2, 3];
-    let m: HashMap<&String, &i32> = v1.iter().zip(v2.iter()).collect();
+    // The <_, _> notation is needed as it's possible to collect into many different data structures
+    // So Rust doesn't know which one we want unless it's specified
+    let m: HashMap<_, _> = v1.iter().zip(v2.iter()).collect();
 }
 
 fn impls_traits() {
@@ -937,18 +971,37 @@ fn option_example(i: i32) -> Option<String> {
 
 fn result() -> Result<i32, io::Error> {
     // Result means the possibility of an error
-    let result = result_example(1, 1);
+    // Compared to panic, it signals a recoverable error
+    /*
+    enum Result<T, E> {
+        Ok(T),
+        Err(E),
+    }
+     */
+
+    let result = div(1, 1);
 
     // We can use pattern matching to check a result
-    match_result(result);
+    match result {
+        Err(e) => println!("error: {}", e),
+        Ok(i) => println!("value: {}", i),
+    }
+
     // If the function returns a Result as well, we can use the ? operator
-    File::open("foo")?;
+    // If the value of the Result is an Ok, it is returned from this expression
+    // Otherwise, the Err will be returned from the surrounding function
+    let _ = File::open("foo")?;
 
     // We can also map directly a result using expect
     // The code will panic if result contains an error
-    let i: i32 = result.expect("foo");
+    let i = result.expect("failed to apply division");
     // Panic if the result contains an error
-    let i: i32 = result.unwrap();
+    let i = result.unwrap();
+    // Returns a default value in case of an error
+    let i = div(1, 0).unwrap_or_else(|error| {
+        println!("error: {}, defaulting to 0", err);
+        0
+    });
 
     // A function calling another function that returns a result can use the ? operator
     let result = result_caller(1, 0);
@@ -956,23 +1009,16 @@ fn result() -> Result<i32, io::Error> {
     Ok(0) // Just to comply with the function signature
 }
 
-fn result_example(a: i32, b: i32) -> Result<i32, &'static str> {
+fn div(a: i32, b: i32) -> Result<i32, &'static str> {
     if b == 0 {
         return Err("b is nil");
     }
     Ok(a / b)
 }
 
-fn match_result(result: Result<i32, &str>) {
-    match result {
-        Err(e) => println!("error: {}", e),
-        Ok(i) => println!("value: {}", i),
-    }
-}
-
 fn result_caller(a: i32, b: i32) -> Result<i32, &'static str> {
     // If result_example returns an error, we automatically returns the error
-    let i = result_example(a, b)?;
+    let i = div(a, b)?;
     Ok(i)
 }
 
@@ -993,7 +1039,7 @@ fn ownership() {
     // println!("{}", i);
     // We say that i was moved into j
 
-    // Yet, in this example the data is a primitive primitive
+    // Yet, in this example the data is a primitive
     // Hence, the value is copied, not transferred to j
     // Both are owners of an i32 value
     let i = 1;
@@ -1222,8 +1268,10 @@ where
     x
 }
 
-fn panicking() {
-    // Panic is **specific to a thread**
+fn panic() {
+    // A panic is an unrecoverable error
+    // It's specific to a thread, not to an application
+
     // We can format the panic message
     if false {
         panic!("{}", 0);
