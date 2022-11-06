@@ -30,10 +30,10 @@ fn main() {
     closures();
     hashmap();
     impls_traits();
+    generics();
     pattern_matching();
     if_let();
     formatted_print();
-    generics();
     option();
     let _ = result();
     ownership();
@@ -334,6 +334,9 @@ fn array() {
     for element in a.iter() {
         let n = element;
     }
+
+    // Two-dimensional array initialization
+    let board = [[0u32; 4]; 4];
 }
 
 fn vector() {
@@ -666,20 +669,39 @@ fn impls_traits() {
     // An associated (static) function call
     let point = Point::new(1, 1);
 
-    // Point implements the Adder trait
-    // The following function an Adder
-    // We pass the structure pointer
-    function_accepting_trait(&point);
+    // A trait can be seen as a contract, it's similar to interfaces in other
+    // languages, with some differences
+
+    // A trait can be a parameter
+    function_accepting_trait(Point::new(1, 1));
+    // A syntax variant called *trait bound* syntax
+    // The previous variant is a syntax sugar
+    function_accepting_trait_variant(Point::new(1, 1));
+    // The trait bound syntax is useful for specific use cases. For example, if we want to
+    // enforce two parameters to have the same type.
+    function_accepting_two_parameters_of_the_same_type(Point::new(1, 1), Point::new(1, 1));
+
+    // A function can also return a trait
+    let t = function_returning_trait();
+    // Note: it's only possible if the function returns a single type
+    // For example, if `function_returning_trait` was returning two possible types implementing
+    // `Trait`, the function wouldn't compile
 
     // Point also implements the generic trait TraitWithGenerics
     let p = Point::convert_to_tuple(Point { x: 1, y: 1 });
 
     // Inheritance example
-    // Ferrari implementing Vehicle and Car
+    // Ferrari implementing the Vehicle and Car traits
     let f = Ferrari {
         id: String::from("001"),
         color: String::from("red"),
     };
+
+    // Note: one restriction with trait implementation is that we can implement a trait on a type
+    // only if:
+    // * Either the trait is local to our crate
+    // * Or if the type is local to our crate
+    // We can't implement external traits on external types
 }
 
 struct Point {
@@ -704,8 +726,22 @@ impl Point {
     }
 }
 
-// TODO: dyn keyword?
-fn function_accepting_trait(_: &dyn Trait) {}
+fn function_accepting_trait(a: impl Trait) {
+    a.default_method();
+}
+
+fn function_accepting_trait_variant<T: Trait>(a: T) {
+    a.default_method();
+}
+
+fn function_accepting_two_parameters_of_the_same_type<T: Trait>(a: T, b: T) {
+    a.default_method();
+    b.default_method();
+}
+
+fn function_returning_trait() -> impl Trait {
+    Point { x: 1, y: 1 }
+}
 
 // Trait example
 trait Trait {
@@ -764,6 +800,83 @@ impl Car for Ferrari {
     fn color(self) -> String {
         self.color
     }
+}
+
+fn generics() {
+    // Generics in Rust do not have any performance impact
+    // Rust accomplishes this using monomorphization
+    // It is the process of turning generic code into specific code at compile time
+
+    // Generic function call
+    // The function accepts only structures implementing Trait
+    let p = generic_function(Point { x: 1, y: 1 }, Point { x: 1, y: 1 });
+    // This is different that the following function that accepts Trait implementation
+    let p = function_accepting_implementation(Point { x: 1, y: 1 }, Point { x: 1, y: 1 });
+    // In the first example, we have to passe the same structure type
+    // In the second example, we can pass two different structure types as long as they both implement Trait
+
+    // A function can also specify multiple traits
+    specifying_multiple_trait(utils::Struct {}, utils::Struct {});
+    // An alternative syntax
+    specifying_multiple_trait_alternative_syntax(utils::Struct {}, utils::Struct {});
+
+    // Instantiate a generic structure
+    let s = GenericStruct { x: 1, y: 2 };
+    println!("{} {}", s.x, s.y);
+
+    // A generic implementation
+    let p = s.generic_function();
+
+    // A specific implementation for GenericStruct<i32> only
+    let i = s.specific_function();
+    let s = GenericStruct { x: "a", y: "b" };
+    // Doesn't compile
+    // s.specific_function();
+
+    // Instantiate a generic enum
+    let p = GenericEnum::<i32, String>::Foo(1);
+    let p = GenericEnum::<i32, String>::Bar("foo".to_string());
+}
+
+fn generic_function<T: Trait>(x: T, _: T) -> T {
+    x
+}
+
+fn function_accepting_implementation(x: impl Trait, _: impl Trait) -> impl Trait {
+    x
+}
+
+fn specifying_multiple_trait<T: utils::Trait1 + utils::Trait2>(x: T, _: T) -> T {
+    x
+}
+
+fn specifying_multiple_trait_alternative_syntax<T>(x: T, _: T) -> T
+where
+    T: utils::Trait1 + utils::Trait2,
+{
+    x
+}
+
+struct GenericStruct<T> {
+    x: T,
+    y: T,
+}
+
+impl<T> GenericStruct<T> {
+    fn generic_function(&self) -> &T {
+        &self.x
+    }
+}
+
+impl GenericStruct<i32> {
+    fn specific_function(&self) -> i32 {
+        self.x + self.y
+    }
+}
+
+enum GenericEnum<T, E> {
+    Foo(T),
+    Bar(E),
 }
 
 fn pattern_matching() {
@@ -856,80 +969,6 @@ fn formatted_print() {
     println!("{:?}", s);
 }
 
-fn generics() {
-    // Generics in Rust do not have any performance impact
-    // Rust accomplishes this using monomorphization
-    // It is the process of turning generic code into specific code at compile time
-
-    // Generic function call
-    // The function accepts only structures implementing Trait
-    let p = generic_function(Point { x: 1, y: 1 }, Point { x: 1, y: 1 });
-    // This is different that the following function that accepts Trait implementation
-    let p = function_accepting_implementation(Point { x: 1, y: 1 }, Point { x: 1, y: 1 });
-    // In the first example, we have to passe the same structure type
-    // In the second example, we can pass two different structure types as long as they both implement Trait
-
-    // A function can also specify multiple traits
-    specifying_multiple_trait(utils::Struct {}, utils::Struct {});
-    // An alternative syntax
-    specifying_multiple_trait_alternative_syntax(utils::Struct {}, utils::Struct {});
-
-    // Instantiate a generic structure
-    let s = GenericStruct { x: 1, y: 2 };
-    println!("{} {}", s.x, s.y);
-
-    // A generic implementation
-    let p = s.generic_function();
-
-    // A specific implementation for GenericStruct<i32> only
-    let i = s.specific_function();
-
-    // Instantiate a generic enum
-    let p = GenericEnum::<i32, String>::Foo(1);
-    let p = GenericEnum::<i32, String>::Bar("foo".to_string());
-}
-
-fn generic_function<T: Trait>(x: T, _: T) -> T {
-    x
-}
-
-fn function_accepting_implementation(x: impl Trait, _: impl Trait) -> impl Trait {
-    x
-}
-
-fn specifying_multiple_trait<T: utils::Trait1 + utils::Trait2>(x: T, _: T) -> T {
-    x
-}
-
-fn specifying_multiple_trait_alternative_syntax<T>(x: T, _: T) -> T
-where
-    T: utils::Trait1 + utils::Trait2,
-{
-    x
-}
-
-struct GenericStruct<T> {
-    x: T,
-    y: T,
-}
-
-impl<T> GenericStruct<T> {
-    fn generic_function(&self) -> &T {
-        &self.x
-    }
-}
-
-impl GenericStruct<i32> {
-    fn specific_function(&self) -> i32 {
-        self.x + self.y
-    }
-}
-
-enum GenericEnum<T, E> {
-    Foo(T),
-    Bar(E),
-}
-
 fn option() {
     // Rust does not have nulls
     // Instead, it has an Option enum that can encode the concept of a value being present or absent
@@ -999,7 +1038,7 @@ fn result() -> Result<i32, io::Error> {
     let i = result.unwrap();
     // Returns a default value in case of an error
     let i = div(1, 0).unwrap_or_else(|error| {
-        println!("error: {}, defaulting to 0", err);
+        println!("error: {}, defaulting to 0", error);
         0
     });
 
