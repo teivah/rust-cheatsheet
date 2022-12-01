@@ -4,6 +4,7 @@ use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io;
+use std::io::{BufRead, BufReader};
 
 mod utils;
 
@@ -44,6 +45,8 @@ fn main() {
     panic();
     iterator();
     smart_pointers();
+    file();
+    sort();
     testing();
 }
 
@@ -1407,6 +1410,29 @@ fn smart_pointers() {
     // Smart pointers implement the following traits:
     // * Deref: allows an instance of the smart pointer struct to behave like a reference
     // * Drop: allows to customize the code that is run when an instance of the smart pointer goes out of scope
+}
+
+fn file() -> Result<(), Box<dyn std::error::Error>> {
+    // Iterate over a file (input: string literal)
+    include_str!("../.gitignore")
+        .lines()
+        .for_each(|x| println!("{}", x));
+
+    // Iterate over a file
+    let reader = BufReader::new(File::open("../.gitignore")?);
+    for line in reader.lines() {
+        println!("{}", line?);
+    }
+
+    Ok(())
+}
+
+fn sort() {
+    let mut input = vec![1, 3, 2];
+    // Sort input (mutates input directly)
+    input.sort();
+    // Sort in the decreasing order
+    input.sort_by(|a, b| b.cmp(a));
 }
 
 fn testing() {
