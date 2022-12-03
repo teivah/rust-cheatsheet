@@ -652,6 +652,9 @@ fn hashmap() {
     // Iteration
     // key is an &String whereas value is an &i32
     for (key, value) in &map {}
+    // Using an iter
+    map.iter()
+        .for_each(|(key, value)| println!("{}{}", key, value));
 
     // Create a hashmap from two vectors
     let v1 = vec![
@@ -1377,6 +1380,9 @@ fn iterator() {
     // Custom iterator
     let mut custom_iterator = CustomIterator::new(vec![1, 2, 3]);
     let o = custom_iterator.next(); // 1
+
+    // Split per chunk
+    (1..10).collect::<Vec<i32>>().chunks(3);
 }
 
 struct CustomIterator {
