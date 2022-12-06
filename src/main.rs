@@ -3,8 +3,8 @@
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fs::File;
-use std::io;
 use std::io::{BufRead, BufReader};
+use std::{fs, io};
 
 mod utils;
 
@@ -1429,6 +1429,9 @@ fn file() -> Result<(), Box<dyn std::error::Error>> {
     for line in reader.lines() {
         println!("{}", line?);
     }
+
+    // String to file
+    let s = fs::read_to_string("Cargo.toml");
 
     Ok(())
 }
