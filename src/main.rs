@@ -1416,6 +1416,20 @@ fn smart_pointers() {
     // Smart pointers implement the following traits:
     // * Deref: allows an instance of the smart pointer struct to behave like a reference
     // * Drop: allows to customize the code that is run when an instance of the smart pointer goes out of scope
+
+    /*
+        In the Rust programming language, the Rc smart pointer is a data structure that allows the programmer to share an object between multiple owners. It is a reference-counted pointer, which means that it keeps track of the number of references to the object that it points to, and it automatically deallocates the object when there are no more references to it.
+
+    The Rc pointer is useful in situations where it is necessary to share an object between multiple parts of the code, but it is not feasible or desirable to use a reference. For example, the Rc pointer can be used to share an object between multiple closures, or to share an object between threads.
+
+    To use the Rc pointer, the programmer must first import the std::rc module and then create an Rc instance by calling the Rc::new function. This function takes a value as an argument and returns an Rc pointer that points to the value.
+
+    Once the Rc pointer has been created, the programmer can create additional references to the value by calling the Rc::clone function. This function increments the reference count for the value, allowing it to be shared between multiple references.
+
+    When all references to the value have been dropped, the Rc pointer will automatically deallocate the value and free the memory that it occupies. This ensures that the value is automatically cleaned up when it is no longer needed, without requiring the programmer to manually manage the memory for the value.
+
+    Overall, the Rc pointer in Rust provides a convenient and safe way to share objects between multiple owners, and it is an important tool for ensuring memory safety and concurrency in Rust programs.
+         */
 }
 
 fn file() -> Result<(), Box<dyn std::error::Error>> {
