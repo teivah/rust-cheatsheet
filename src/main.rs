@@ -13,6 +13,14 @@ fn main() {
     // TODO library (lib.rs) vs application (main.rs)
     // TODO Chapter 7
 
+    // TODO Note
+    /*
+        - Copy (owner of a new value)
+        - Move (transfer ownership)
+        - Shared reference (multiple)
+        - Mutable reference (single)
+    */
+
     cargo();
     comment();
     scalar_types();
@@ -593,11 +601,19 @@ enum EnumWithVariants {
 fn closures() {
     // Three types of closure
     // FnOnce: consume the variables it captures (all closures implement FnOnce as they can all be called at least once)
-    // FnMut: mutable borrow
+    // FnMut: mutable borrow (if closure don't move the captured variables)
     // Fn: immutable borrow
 
     // Closure example
-    let c = |x: i32, y: i32| -> i32 { x + y };
+    let x = 1;
+    let c = |y: i32| -> i32 { x + y };
+    println!("closure result: {}", c(2));
+
+    // We're not obliged to annotate the type of the parameters or the return value like fn functions do
+    let x = 5;
+    let mut y;
+    let c = |v| v + 1;
+    y = c(x);
 
     // To force a closure to take ownership of the values we can use move keyword
     let c = move |x: Point| -> Point { x };
@@ -1051,6 +1067,14 @@ fn result() -> Result<i32, io::Error> {
     // A function calling another function that returns a result can use the ? operator
     let result = result_caller(1, 0);
 
+    // Check if the result is an error in a single line
+    if let Err(e) = result {
+        // Handle error
+    }
+
+    // If a function returns only a possible error, we can also make it to return a result
+    let result = empty_result();
+
     Ok(0) // Just to comply with the function signature
 }
 
@@ -1065,6 +1089,11 @@ fn result_caller(a: i32, b: i32) -> Result<i32, &'static str> {
     // If result_example returns an error, we automatically returns the error
     let i = div(a, b)?;
     Ok(i)
+}
+
+fn empty_result() -> Result<(), &'static str> {
+    // Doesn't return a value we need
+    Ok(())
 }
 
 fn ownership() {
@@ -1222,32 +1251,19 @@ fn lifetimes() {
     // Lifetime annotations are check at compile-time (main reason for slower compilation times)
     // Yet, it brings safety to the language
 
-    // Lifetimes are marked with an apostrophe
-    // Convention: lowercase, starts with 'a and follows alphabetic order (if multiple annotations)
-
-    // **Every reference should have a lifetime** (either manual or added by the compiler if possible)
-
-    // The three compiler rules regarding lifetimes references:
-    // 1. Each parameter that is a reference gets itw own lifetime parameter
-    // A function with one paramter gets one lifetime, a function with two gets two separate lifetime parameters
-    // Example: fn foo<'a, 'b>(x: 'a i32, y: &'b i32)
-    // 2. If there is exactly one input lifetime parameter, the lifetime is assigned to all out lifetime parameters
-    // If there are multiple input lifetime parameters but one of them is &self or &mut self (a method)
-    // the lifetime of self is assigned to all output lifetime parameters
-
-    // This code does not compile
+    // Let's have a look at this example
     let s1;
     {
         let s2 = String::from("foo");
         s1 = &s2;
     }
-    // The following code will raise the following error:
-    // "borrowed value does not live long enough"
+    // The following line wouldn't compile
+    // println!("{}", s1);
+    // This issue would be: "borrowed value does not live long enough"
     // This is because the ownership of the memory was never transferred to s1
     // Hence, it will be cleaned up at the end of the internal scope (the {})
-    // println!("{}", s1);
 
-    // The following function would not compile:
+    // Another example, this function would not compile:
     /*
     fn longest(x: &str, y: &str) -> &str {
         if x.len() > y.len() {
@@ -1259,8 +1275,31 @@ fn lifetimes() {
      */
     // Rust can't tell whether the reference returned refers to x or y
 
-    // Instead, we have to set a lifetime annotation
-    let n = longest_with_lifetime("foo", "bar");
+    // Lifetimes are marked with an apostrophe
+    // Convention: lowercase, starts with 'a and follows alphabetic order (if multiple annotations)
+
+    // **Every reference should have a lifetime** (either manual or added by the compiler if possible)
+
+    // The three compiler rules regarding lifetimes references:
+    // 1. Each parameter that is a reference gets itw own lifetime parameter
+    // A function with one parameter gets one lifetime, a function with two gets two separate lifetime parameters
+    // Example: fn foo<'a, 'b>(x: 'a i32, y: &'b i32)
+    // 2. If there is exactly one input lifetime parameter, the lifetime is assigned to all output lifetime parameters
+    // 3. If there are multiple input lifetime parameters but one of them is &self or &mut self (a method)
+    // the lifetime of self is assigned to all output lifetime parameters
+
+    // When we specify a lifetime, we're not changing the lifetime of any values passed or returned.
+    // Instead, we're specifying that the borrow checker should reject any values that don't adhere
+    // to these constraints.
+
+    // To make the previous function work, we have to set a lifetime annotation
+    fn longest_with_lifetime<'a>(x: &'a str, y: &'a str) -> &'a str {
+        if x.len() > y.len() {
+            x
+        } else {
+            y
+        }
+    }
 
     // In this example, the function returns the input reference
     // Hence, the compiler does not need to know what's the lifetime
@@ -1275,21 +1314,13 @@ fn lifetimes() {
     let x = LifetimeStruct { s: "foo" };
     println!("{}", x.s);
 
+    // Static: lives the entire lifetime of the application
     // All string literals have the 'static lifetime
     // The text of this string is stored directly in the binary of the program
     let s: &'static str = "I have a static lifetime.";
 
     // Generics and lifetimes
     let p = generics_with_lifetimes(&Point { x: 1, y: 1 });
-}
-
-// Inputs and output share the same lifetime
-fn longest_with_lifetime<'a>(x: &'a str, y: &'a str) -> &'a str {
-    if x.len() > y.len() {
-        x
-    } else {
-        y
-    }
 }
 
 fn function_with_useless_lifetime<'a>(s: &'a str) -> &'a str {
@@ -1460,9 +1491,11 @@ fn sort() {
 
 fn testing() {
     // The best practice is to keep unit tests in a tests module in the end of the file
+
     // Integration tests should live in /tests folder, next to /src
 
-    // To avoid running tests in parallel: $cargo test -- --test-threads=1
+    // Note: if our project is a binary crate, we can't create integration tests testing src/main.rs
+    // For that reason, one best practice is, even for a binary crate, to put the logic inside src/lib.rs
 }
 
 fn sum(i: i32, j: i32) -> i32 {
@@ -1474,9 +1507,39 @@ mod tests {
     // Import the parent module
     use super::*;
 
+    // Run all tests:
+    // $ cargo test
+    // A single test:
+    // $ cargo test test_sum
+
+    // Note: it is allowed to test a private function
+
+    // Each test run in a new thread: make sure that tests don't depend on a shared state
+    // We can change that using:
+    // $ cargo test -- --test-threads=1
+
+    // Verbose mode:
+    // $ cargo test -- --show-output
+
     #[test]
-    // We can use #[ignore] to ignore a test
+    // We can use:
+    // * #[ignore] to ignore a test
+    // * #[should_panic] to check that a function should panic
     fn test_sum() {
+        // Assert equal
         assert_eq!(sum(2, 2), 4);
+        // Assert not equal
+        assert_ne!(sum(2, 2), 3);
+        // Assert boolean
+        assert!("hello foo".contains("foo"), "do not contain foo")
+    }
+
+    // A test can also return a Result
+    fn test_result() -> Result<(), String> {
+        if 2 + 2 == 4 {
+            Ok(())
+        } else {
+            Err(String::from("error"))
+        }
     }
 }
