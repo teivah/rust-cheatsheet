@@ -237,6 +237,10 @@ fn string() {
     // * String: Owned variant
     // * Str: Borrowed variant
     // For example, the 0sString type is owned whereas 0sStr is borrowed
+
+    // String to int conversion
+    let s = "42";
+    let i: i32 = s.parse().unwrap();
 }
 
 fn tuples() {
