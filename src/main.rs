@@ -605,20 +605,21 @@ fn closures() {
     // Direct closure call
     let c: i32 = { 1 + 2 };
 
-    // A struct can hold a closure
-    let s = StructWithClosure { f: |x| x + 1 };
+    // A struct can hold a function
+    let s = StructWithFunction { f: |x| x + 1 };
     let n = (s.f)(1);
 
-    // A structure holding a closure with generics (see later)
-    let s = StructWithClosureAndGenerics { f: |x| x + 1 };
+    // In case of a closure (variable v is moved), the struct has to use generics
+    let v = 1;
+    let s = StructWithClosure { f: |x| x + v };
     let n = (s.f)(1);
 }
 
-struct StructWithClosure {
+struct StructWithFunction {
     f: fn(i32) -> i32,
 }
 
-struct StructWithClosureAndGenerics<T>
+struct StructWithClosure<T>
 where
     T: Fn(u32) -> u32,
 {
