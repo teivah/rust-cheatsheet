@@ -266,7 +266,7 @@ fn control_flow() {
         // false
     }
 
-    // If/else assignment
+    // If/else assignment (similar to ternary operator)
     let n: bool = if i == 5 { true } else { false };
 }
 
@@ -968,6 +968,11 @@ fn if_let() {
     let e = EnumWithVariants::Foo { age: 1, id: 3 };
     if let EnumWithVariants::Foo { id, age } = e {
         println!("id={}, age={}", id, age);
+    }
+
+    let o: Option<i32> = Some(1);
+    if let Some(i) = o {
+        println!("{}", i);
     }
 }
 
