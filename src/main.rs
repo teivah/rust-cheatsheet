@@ -1568,9 +1568,9 @@ fn smart_pointers() {
     // let mut b = owner_a.borrow_mut();
     // b.x += 1;
 
-    let mut data = Rc::new(RefCell::new(Vec::new()));
-    data.borrow_mut().push(5);
-    println!("{:?}", data.borrow().last());
+    // let mut data = Rc::new(RefCell::new(Vec::new()));
+    // data.borrow_mut().push(5);
+    // println!("{:?}", data.borrow().last());
 }
 
 fn file() -> Result<(), Box<dyn std::error::Error>> {
