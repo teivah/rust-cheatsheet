@@ -1,6 +1,6 @@
 #![allow(unused)]
 
-use std::borrow::BorrowMut;
+use std::borrow::{Borrow, BorrowMut};
 use std::cell::{Ref, RefCell, RefMut};
 use std::cmp::Ordering;
 use std::collections::HashMap;
@@ -1516,7 +1516,7 @@ fn smart_pointers() {
     struct Foo {
         x: i32,
     };
-    let foo = Foo { x: 1 };
+    let mut foo = Foo { x: 1 };
     // Instantiate
     let a = Rc::new(foo);
     // Note: Rc is now the owner of foo
@@ -1528,6 +1528,7 @@ fn smart_pointers() {
     println!("reference count={}", Rc::strong_count(&a));
 
     // -------------------- RefCell --------------------
+
     // RefCell<T> is for interior mutability
     // Interior mutability is a design pattern that allows to mutate data even when there are
     // immutable references to that data
@@ -1554,6 +1555,22 @@ fn smart_pointers() {
     // Returns the wrapped value (move)
     let rc = RefCell::new(Foo { x: 1 });
     let foo = rc.into_inner();
+
+    // -------------------- Rc + RefCell --------------------
+
+    // A common way to use RefCell<T> is in combination with Rc<T>
+    // We can get a value that can be mutated by multiple owners
+    let mut foo = Foo { x: 1 };
+    let mut owner_a = Rc::new(RefCell::new(foo));
+    // let owner_b = Rc::clone(&owner_a);
+
+    // To mutate foo from one owner
+    // let mut b = owner_a.borrow_mut();
+    // b.x += 1;
+
+    let mut data = Rc::new(RefCell::new(Vec::new()));
+    data.borrow_mut().push(5);
+    println!("{:?}", data.borrow().last());
 }
 
 fn file() -> Result<(), Box<dyn std::error::Error>> {
