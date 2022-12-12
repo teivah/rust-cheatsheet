@@ -1,9 +1,13 @@
 #![allow(unused)]
 
+use std::borrow::BorrowMut;
+use std::cell::{Ref, RefCell, RefMut};
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
+use std::ops::{Deref, DerefMut};
+use std::rc::Rc;
 use std::{fs, io};
 
 mod utils;
@@ -1470,6 +1474,15 @@ fn smart_pointers() {
     // * Deref: allows an instance of the smart pointer struct to behave like a reference
     // * Drop: allows to customize the code that is run when an instance of the smart pointer goes out of scope
 
+    // Deref coercion: converts a reference to a type that implements Deref into a reference
+    // to a type that Deref can convert the original type into
+    // Done in 3 cases:
+    // * From &T to &U when T: Deref<Target=U>
+    // * From &mut T to &mut U when T: DerefMut<Target=U>
+    // * From &mut T to &U when T: Deref<Target=U>
+    // Note: for the latter case, the reverse isn't possible: immutable references will never
+    // coerce to mutable references
+
     // -------------------- Box --------------------
 
     // Box<T> allows to store data on the heap rather than the stack
@@ -1491,20 +1504,56 @@ fn smart_pointers() {
     // Using the dereference operator, the Deref trait is involved
     let i = *b;
 
-    let v = vec![1, 2, 3];
-    let b = Box::new(v);
-    println!("{}", v[1]);
-
     // -------------------- Rc --------------------
 
-    // Deref coercion: converts a reference to a type that implements Deref into a reference
-    // to a type that Deref can convert the original type into
-    // Done in 3 cases:
-    // * From &T to &U when T: Deref<Target=U>
-    // * From &mut T to &mut U when T: DerefMut<Target=U>
-    // * From &mut T to &U when T: Deref<Target=U>
-    // Note: for the latter case, the reverse isn't possible: immutable references will never
-    // coerce to mutable references
+    // Rc<T>: reference counted smart pointer
+    // Use case: single value might have multiple owners (e.g., graph data structure)
+
+    // We use the Rc<T> type when we want to allocate some data on the heap for multiple parts of
+    // our program to read and we can't determine at compile time which part will finish using the
+    // data last
+    // Note: Rc<T> is only for use in single-threaded scenarios
+    struct Foo {
+        x: i32,
+    };
+    let foo = Foo { x: 1 };
+    // Instantiate
+    let a = Rc::new(foo);
+    // Note: Rc is now the owner of foo
+    // Create a copy of the Rc (not a deep copy of foo)
+    let b = Rc::clone(&a);
+    let c = Rc::clone(&a);
+
+    // Access the reference count
+    println!("reference count={}", Rc::strong_count(&a));
+
+    // -------------------- RefCell --------------------
+    // RefCell<T> is for interior mutability
+    // Interior mutability is a design pattern that allows to mutate data even when there are
+    // immutable references to that data
+    // Unlike Rc<T>, RefCell<T> represents a single data ownership
+    // If this rule is broken the program will panic at runtime
+    // Note: RefCell<T> is only for use in single-threaded scenarios
+
+    let foo = Foo { x: 1 };
+    let rc = RefCell::new(foo);
+    // Create a mutable reference (&mut)
+    {
+        let mut mutable: RefMut<Foo> = rc.borrow_mut();
+        // At the end of the scope, the borrow is automatically released
+        mutable.deref_mut();
+    }
+    let mut mutable: RefMut<Foo> = rc.borrow_mut();
+    // We can also call drop directly to release a mutable borrow
+    drop(mutable);
+
+    // Create an immutable reference (&)
+    let immutable: Ref<Foo> = rc.borrow();
+    // Same as an immutable borrow, the borrow is released either automatically or manually using drop
+
+    // Returns the wrapped value (move)
+    let rc = RefCell::new(Foo { x: 1 });
+    let foo = rc.into_inner();
 }
 
 fn file() -> Result<(), Box<dyn std::error::Error>> {
