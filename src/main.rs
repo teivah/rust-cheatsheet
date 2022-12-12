@@ -21,6 +21,8 @@ fn main() {
         - Mutable reference (single)
     */
 
+    // TODO: is an ownership trasfer a copy?
+
     cargo();
     comment();
     scalar_types();
@@ -1418,6 +1420,14 @@ fn iterator() {
         .collect::<Vec<_>>()
         .join(",");
 
+    // Iteration on a data structure
+    let v = vec![1, 2, 3];
+    v.iter().for_each(|v| println!("{}", v));
+
+    // If we want to create an iterator that takes ownership of v
+    v.into_iter().for_each(|v| println!("{}", v));
+    // v isn't accessible at this stage
+
     // Custom iterator
     let mut custom_iterator = CustomIterator::new(vec![1, 2, 3]);
     let o = custom_iterator.next(); // 1
@@ -1437,6 +1447,7 @@ impl CustomIterator {
     }
 }
 
+// To create a custom iterator, we have to implement the Iterator trait
 impl Iterator for CustomIterator {
     type Item = i32;
 
@@ -1452,25 +1463,48 @@ impl Iterator for CustomIterator {
 fn smart_pointers() {
     // A smart pointer is a data structure that not only act like a pointer
     // but also have additional metadata and capabilities
+    // In most cases, smart pointers own the data they point to
 
     // Distinction between smart pointer and ordinary struct:
     // Smart pointers implement the following traits:
     // * Deref: allows an instance of the smart pointer struct to behave like a reference
     // * Drop: allows to customize the code that is run when an instance of the smart pointer goes out of scope
 
-    /*
-        In the Rust programming language, the Rc smart pointer is a data structure that allows the programmer to share an object between multiple owners. It is a reference-counted pointer, which means that it keeps track of the number of references to the object that it points to, and it automatically deallocates the object when there are no more references to it.
+    // -------------------- Box --------------------
 
-    The Rc pointer is useful in situations where it is necessary to share an object between multiple parts of the code, but it is not feasible or desirable to use a reference. For example, the Rc pointer can be used to share an object between multiple closures, or to share an object between threads.
+    // Box<T> allows to store data on the heap rather than the stack
+    // What remains on the stack is a pointer to the heap data
+    // No performance overhead, other than storing data on the heap
 
-    To use the Rc pointer, the programmer must first import the std::rc module and then create an Rc instance by calling the Rc::new function. This function takes a value as an argument and returns an Rc pointer that points to the value.
+    // Use cases:
 
-    Once the Rc pointer has been created, the programmer can create additional references to the value by calling the Rc::clone function. This function increments the reference count for the value, allowing it to be shared between multiple references.
+    // * Large amount of data and we want to transfer ownership but ensure the data won't be copied
+    // * Own a value and we care only that it's a type that implements a particular trait rather
+    //   than being of a specific type
+    // * A type whose size can't be known at compile time, example a recursive struct
+    struct Node {
+        children: Box<Node>,
+    }
 
-    When all references to the value have been dropped, the Rc pointer will automatically deallocate the value and free the memory that it occupies. This ensures that the value is automatically cleaned up when it is no longer needed, without requiring the programmer to manually manage the memory for the value.
+    // Instantiation
+    let b = Box::new(5);
+    // Using the dereference operator, the Deref trait is involved
+    let i = *b;
 
-    Overall, the Rc pointer in Rust provides a convenient and safe way to share objects between multiple owners, and it is an important tool for ensuring memory safety and concurrency in Rust programs.
-         */
+    let v = vec![1, 2, 3];
+    let b = Box::new(v);
+    println!("{}", v[1]);
+
+    // -------------------- Rc --------------------
+
+    // Deref coercion: converts a reference to a type that implements Deref into a reference
+    // to a type that Deref can convert the original type into
+    // Done in 3 cases:
+    // * From &T to &U when T: Deref<Target=U>
+    // * From &mut T to &mut U when T: DerefMut<Target=U>
+    // * From &mut T to &U when T: Deref<Target=U>
+    // Note: for the latter case, the reverse isn't possible: immutable references will never
+    // coerce to mutable references
 }
 
 fn file() -> Result<(), Box<dyn std::error::Error>> {
