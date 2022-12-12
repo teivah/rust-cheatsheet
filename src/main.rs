@@ -1,6 +1,5 @@
 #![allow(unused)]
 
-use std::borrow::{Borrow, BorrowMut};
 use std::cell::{Ref, RefCell, RefMut};
 use std::cmp::Ordering;
 use std::collections::HashMap;
@@ -1560,17 +1559,16 @@ fn smart_pointers() {
 
     // A common way to use RefCell<T> is in combination with Rc<T>
     // We can get a value that can be mutated by multiple owners
-    let mut foo = Foo { x: 1 };
-    let mut owner_a = Rc::new(RefCell::new(foo));
-    // let owner_b = Rc::clone(&owner_a);
+    let foo = Foo { x: 1 };
+    let owner_a = Rc::new(RefCell::new(foo));
+    let owner_b = Rc::clone(&owner_a);
 
-    // To mutate foo from one owner
-    // let mut b = owner_a.borrow_mut();
-    // b.x += 1;
-
-    // let mut data = Rc::new(RefCell::new(Vec::new()));
-    // data.borrow_mut().push(5);
-    // println!("{:?}", data.borrow().last());
+    // To mutate foo from one owner (foo itself doesn't have to be mutable)
+    let mut b: RefMut<Foo> = owner_a.borrow_mut();
+    // Note: if compiler issues, make sure std::borrow::{Borrow, BorrowMut} isn't imported
+    b.x += 1;
+    drop(b);
+    println!("foo.x={}", owner_b.borrow().x);
 }
 
 fn file() -> Result<(), Box<dyn std::error::Error>> {
