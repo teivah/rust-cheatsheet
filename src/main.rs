@@ -6,8 +6,10 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::ops::{Deref, DerefMut};
-use std::rc::Rc;
-use std::{fs, io};
+use std::rc::{Rc, Weak};
+use std::sync::mpsc::channel;
+use std::sync::{Arc, Mutex};
+use std::{fs, io, thread};
 
 mod utils;
 
@@ -43,9 +45,10 @@ fn main() {
     enums();
     closures();
     hashmap();
-    impls_traits();
+    traits();
     generics();
     pattern_matching();
+    destructure();
     if_let();
     formatted_print();
     option();
@@ -60,6 +63,10 @@ fn main() {
     smart_pointers();
     file();
     sort();
+    threads();
+    message_passing();
+    arc();
+    sync_send();
     testing();
 }
 
@@ -311,6 +318,16 @@ fn loops() {
             break sum < 10; // Returns a boolean
         }
     };
+
+    // Enumerate
+    let v = vec![1, 2, 3];
+    for (index, value) in v.iter().enumerate() {
+        println!("index={}, value={}", index, value);
+    }
+}
+
+fn print_coordinates(&(x, y): &(i32, i32)) {
+    println!("x={}, y={}", x, y);
 }
 
 fn array() {
@@ -694,7 +711,7 @@ fn hashmap() {
     let m: HashMap<_, _> = v1.iter().zip(v2.iter()).collect();
 }
 
-fn impls_traits() {
+fn traits() {
     // An impl is used to define method for structs and enums
     let p = Point { x: 1, y: 1 }.foo(Point { x: 2, y: 2 });
 
@@ -734,6 +751,11 @@ fn impls_traits() {
     // * Either the trait is local to our crate
     // * Or if the type is local to our crate
     // We can't implement external traits on external types
+
+    // Method calls on trait objects (dyn Trait) works only with traits which are object safe
+    // A trait is object safe if all the methods defined in the traits have the following properties:
+    // * The return type isn't Self
+    // * There are no generic type parameters
 }
 
 struct Point {
@@ -938,6 +960,13 @@ fn pattern_matching() {
         Ordering::Equal => "equals",
     };
 
+    // Matching multiple options
+    let level = 22;
+    let n = match level {
+        1 | 2 => "beginner",
+        _ => "other",
+    };
+
     // Matching an interval
     let level = 22;
     let n = match level {
@@ -946,6 +975,13 @@ fn pattern_matching() {
         11..=20 => "expert",
         _ => "other",
     };
+
+    let c = 'x';
+    match c {
+        'a'..='j' => (),
+        'k'..='z' => (),
+        _ => (),
+    }
 
     // Pattern matching on a tuple
     let i = 1;
@@ -966,6 +1002,59 @@ fn pattern_matching() {
         EnumWithVariants::Bar(foo) => println!("element={}", foo),
         _ => println!("else"), // Baz variant
     }
+
+    // There are two types of patterns:
+    // * Irrefutable: pattern that matches for any possible value
+    // * Refutable: pattern that can fail to match for some possible value
+    // Irrefutable
+    let e = EnumWithVariants::Bar("foo".to_string());
+    match e {
+        // We have to use all possible enum values or use a default case
+        EnumWithVariants::Foo { id, age } => (),
+        EnumWithVariants::Bar(_) => (),
+        EnumWithVariants::Baz => (),
+    }
+    // Refutable
+    let option = Some(5);
+    if let Some(o) = option {}
+    // Function parameters, let statement, and for loops only can only accept irrefutable patterns
+
+    // Match guard: an additional if condition specified after a pattern in a match arm
+    let option = Some(5);
+    match option {
+        // Match guard
+        Some(x) if x < 5 => (),
+        Some(x) => (),
+        _ => (),
+    }
+
+    // The @ operator (at) allows to create a variable that holds a value at the same time we're testing it
+    let option = Some(5);
+    match option {
+        // Matches if option is Some(x) and if x is between 0 and 5 included
+        Some(x @ 0..=5) => (),
+        Some(x) => (),
+        _ => (),
+    }
+}
+
+fn destructure() {
+    // Destructure a tuple
+    let (x, y) = (1, 2);
+
+    // Matching only the first and last elements of a tuple
+    let numbers = (1, 2, 3, 4, 5);
+    match numbers {
+        (first, .., last) => println!("first={}, last={}", first, last),
+    }
+
+    // During a function call
+    print_coordinates(&(3, 5));
+
+    // Destructure a structure
+    let point = Point { x: 1, y: 2 };
+    let Point { x, y } = point;
+    println!("x={}, y={}", x, y);
 }
 
 fn if_let() {
@@ -978,6 +1067,15 @@ fn if_let() {
     let o: Option<i32> = Some(1);
     if let Some(i) = o {
         println!("{}", i);
+    }
+
+    // While let is also possible
+    let mut stack = Vec::new();
+    stack.push(1);
+    stack.push(2);
+    stack.push(3);
+    while let Some(top) = stack.pop() {
+        println!("{}", top);
     }
 }
 
@@ -1526,6 +1624,14 @@ fn smart_pointers() {
     // Access the reference count
     println!("reference count={}", Rc::strong_count(&a));
 
+    // While Rc::clone increments strong_count, we also can create weak references (increment weak_count)
+    // The main difference is that the weak_count doesn't have to be zero for the Rc<T> instance
+    // to be cleaned up: a weak reference doesn't express an ownership relationship
+    let weak: Weak<Foo> = Rc::downgrade(&a);
+
+    // Access the weak count
+    println!("weak count={}", Rc::weak_count(&a));
+
     // -------------------- RefCell --------------------
 
     // RefCell<T> is for interior mutability
@@ -1595,6 +1701,65 @@ fn sort() {
     input.sort();
     // Sort in the decreasing order
     input.sort_by(|a, b| b.cmp(a));
+}
+
+fn threads() {
+    // Create a new thread
+    let handle = thread::spawn(|| println!("in a new thread"));
+    handle.join();
+
+    // We can also use move to force the closure to take ownership of the values
+    let v = vec![1, 2, 3];
+    thread::spawn(move || println!("{:?}", v));
+    // The following line wouldn't compile
+    // println!("{:?}", v);
+}
+
+fn message_passing() {
+    // We can use message passing to transfer data between threads using the mspc library
+    // mspc: multiple senders, only one receiver
+    let (tx, rx) = channel();
+    thread::spawn(move || {
+        let v = vec![1, 2, 3];
+        tx.send(v);
+        // Sending the value is a move so the following line wouldn't compile
+        // println!("{:?}", v);
+    });
+    // recv() is blocking whereas try_recv is not blocking
+    let vec = rx.recv().unwrap();
+    println!("received from thread: {:?}", vec)
+}
+
+fn arc() {
+    // Arc<T> is a smart pointer like Rc<T> but safe to concurrent uses (A stands for atomic)
+
+    // Implementation of a shared counter
+    let counter = Arc::new(Mutex::new(0));
+    let mut shared_value = 0;
+    let mut handles = Vec::new();
+    for _ in 0..3 {
+        // Create a new strong count
+        let counter = Arc::clone(&counter);
+        let handle = thread::spawn(move || {
+            let mut v = counter.lock().unwrap();
+            *v += 1;
+        });
+        handles.push(handle);
+    }
+
+    // Wait for all the threads to complete
+    for handle in handles {
+        handle.join();
+    }
+
+    // Print the final result
+    println!("final counter value={}", *counter.lock().unwrap());
+}
+
+fn sync_send() {
+    // The Send marker trait indicates the ownership of the type can be transferred between threads
+
+    // The Sync marker trait indicates that it's safe for the type to be referenced from multiple threads
 }
 
 fn testing() {
