@@ -3,31 +3,18 @@
 use std::cell::{Ref, RefCell, RefMut};
 use std::cmp::Ordering;
 use std::collections::HashMap;
+use std::fmt::Formatter;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::ops::{Deref, DerefMut};
 use std::rc::{Rc, Weak};
 use std::sync::mpsc::channel;
 use std::sync::{Arc, Mutex};
-use std::{fs, io, thread};
+use std::{fmt, fs, io, thread};
 
 mod utils;
 
 fn main() {
-    // TODO to_owned()
-    // TODO library (lib.rs) vs application (main.rs)
-    // TODO Chapter 7
-
-    // TODO Note
-    /*
-        - Copy (owner of a new value)
-        - Move (transfer ownership)
-        - Shared reference (multiple)
-        - Mutable reference (single)
-    */
-
-    // TODO: is an ownership trasfer a copy?
-
     cargo();
     comment();
     scalar_types();
@@ -63,10 +50,19 @@ fn main() {
     smart_pointers();
     file();
     sort();
+    // Concurrency
     threads();
     message_passing();
     arc();
     sync_send();
+    // Advanced features
+    unsafe_();
+    associated_types();
+    newtype();
+    alias();
+    never_type();
+    macros();
+    // Testing
     testing();
 }
 
@@ -159,15 +155,21 @@ fn const_static_variables() {
     // Note that type inference doesn't work with constants
     const FOO: f32 = 3.1;
 
+    // Or, we can create static variable
+    // The main difference between a constant and a static variable is that values in a static
+    // variable have a fixed address in memory
+    // Hence, accessing a static variable refers to the same date
+    // Whereas accessing a const duplicates the data whenever it's used
+
     // Immutable static variable
     static BAR: i32 = 3;
 
-    // Static variable
-    static mut BAZ: i32 = 3;
+    // Mutable static variable
+    static mut VAR: i32 = 3;
     // A static variable can be mutable compared to a constant
     // Yet, it requires to be done inside an unsafe block
     unsafe {
-        BAZ = 4;
+        VAR = 4;
     }
 }
 
@@ -655,6 +657,13 @@ fn closures() {
     let v = 1;
     let s = StructWithClosure { f: |x| x + v };
     let n = (s.f)(1);
+
+    // A function can also accept a closure
+    function_accepting_closure(1, 2, |a, b| a + b);
+    // We could have also passed a function like so
+    function_accepting_closure(1, 2, add);
+
+    // A function retuning a fn type can't return a closure directly
 }
 
 struct StructWithFunction {
@@ -666,6 +675,14 @@ where
     T: Fn(u32) -> u32,
 {
     f: T,
+}
+
+fn function_accepting_closure(a: i32, b: i32, f: fn(i32, i32) -> i32) -> i32 {
+    return f(a, b);
+}
+
+fn add(a: i32, b: i32) -> i32 {
+    a + b
 }
 
 fn hashmap() {
@@ -765,7 +782,6 @@ struct Point {
 
 // A collection of methods on Point structure
 impl Point {
-    // TODO self (ownership), &self (reference) or &mut self (mutable reference)?
     fn foo(self, point: Point) -> Point {
         Point {
             x: self.x + point.x,
@@ -1280,8 +1296,6 @@ fn copy() {
     // Types that implement the Copy trait:
     // * Primitives
     // * Tuple of Copy types
-
-    // TODO: Copy trait
 }
 
 fn borrowing() {
@@ -1342,6 +1356,12 @@ fn borrowing() {
     //      * One mutable reference
     //      * Any number of immutable references
     // * References must always be valid
+
+    // Global summary, when assigning variables, calling or returning values, we're in one of these situations:
+    // * Copy (owner of a new value)
+    // * Move (transfer ownership)
+    // * Shared reference (multiple)
+    // * Mutable reference (single)
 }
 
 fn function_accepting_shared_borrowing_vector(_: &Vec<i32>) {}
@@ -1760,6 +1780,78 @@ fn sync_send() {
     // The Send marker trait indicates the ownership of the type can be transferred between threads
 
     // The Sync marker trait indicates that it's safe for the type to be referenced from multiple threads
+}
+
+fn unsafe_() {
+    // Unsafe Rust exists to tell the compiler: "trust me, I know what I'm doing"
+
+    let mut v = 5;
+    // Unsafe Rust introduces the concept of raw pointers:
+    // *const T
+    let r1 = &v as *const i32;
+    // *mut T
+    let r2 = &mut v as *mut i32;
+    // Differences between smart and raw pointers:
+    // * Allowed to ignore borrowing rules
+    // * Aren't guaranteed to point to valid memory
+    // * Are allowed to be null
+    // * Don't implement any automatic cleanup
+
+    // Calling an unsafe method can be done either:
+    // * In adding the unsafe keyword just like in the definition of dangerous
+    // * Or by adding an unsafe block (this way, the whole function don't have to be unsafe)
+    unsafe {
+        dangerous();
+    }
+
+    // A trait can also be unsafe if at least one of its methods has some invariants the compiler
+    // can't verify (see UnsafeTrait)
+}
+
+unsafe fn call_dangerous() {}
+
+unsafe fn dangerous() {}
+
+unsafe trait UnsafeTrait {}
+
+fn associated_types() {
+    // TODO
+}
+
+fn newtype() {
+    // We mentioned that we're allowed to implement a trait on a type either as long as either
+    // the trait or the type are local to our create
+    // It's possible to get around this restriction with the newtype pattern
+
+    // For example, Vec<String> doesn't implement fmt::Display so we can create a wrapper (see Wrapper)
+}
+
+struct Wrapper(Vec<String>);
+
+impl fmt::Display for Wrapper {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "[{}]", self.0.join(", "))
+    }
+}
+
+fn alias() {
+    // We can create type aliases
+    type Kilometers = i32;
+    let x: Kilometers = 5;
+}
+
+fn never_type() {
+    // Rust has a special type for functions that never return
+    // See the never_return function
+    // We should read it as: "the function never_return can never possibly return"
+}
+
+fn never_return() -> ! {
+    loop {}
+}
+
+fn macros() {
+    // Macros are a way of writing code that writes other code; also known as metaprogramming
 }
 
 fn testing() {
