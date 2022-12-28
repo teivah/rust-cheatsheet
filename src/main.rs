@@ -1150,6 +1150,10 @@ fn option() {
 
     // unwrap_or_else takes a closure to return a default value
     let s: String = option_example(0).unwrap_or_else(|| String::from("foo"));
+
+    // To convert an &Option<T> into an Option<&T>, we should use as_ref
+    let option = option_example(0);
+    let option1: &String = option.as_ref().unwrap();
 }
 
 fn option_example(i: i32) -> Option<String> {
