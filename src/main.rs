@@ -3,29 +3,18 @@
 use std::cell::{Ref, RefCell, RefMut};
 use std::cmp::Ordering;
 use std::collections::HashMap;
+use std::fmt::Formatter;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::ops::{Deref, DerefMut};
-use std::rc::Rc;
-use std::{fs, io};
+use std::rc::{Rc, Weak};
+use std::sync::mpsc::channel;
+use std::sync::{Arc, Mutex};
+use std::{fmt, fs, io, thread};
 
 mod utils;
 
 fn main() {
-    // TODO to_owned()
-    // TODO library (lib.rs) vs application (main.rs)
-    // TODO Chapter 7
-
-    // TODO Note
-    /*
-        - Copy (owner of a new value)
-        - Move (transfer ownership)
-        - Shared reference (multiple)
-        - Mutable reference (single)
-    */
-
-    // TODO: is an ownership trasfer a copy?
-
     cargo();
     comment();
     scalar_types();
@@ -43,9 +32,10 @@ fn main() {
     enums();
     closures();
     hashmap();
-    impls_traits();
+    traits();
     generics();
     pattern_matching();
+    destructure();
     if_let();
     formatted_print();
     option();
@@ -60,6 +50,19 @@ fn main() {
     smart_pointers();
     file();
     sort();
+    // Concurrency
+    threads();
+    message_passing();
+    arc();
+    sync_send();
+    // Advanced features
+    unsafe_();
+    associated_types();
+    newtype();
+    alias();
+    never_type();
+    macros();
+    // Testing
     testing();
 }
 
@@ -152,15 +155,21 @@ fn const_static_variables() {
     // Note that type inference doesn't work with constants
     const FOO: f32 = 3.1;
 
+    // Or, we can create static variable
+    // The main difference between a constant and a static variable is that values in a static
+    // variable have a fixed address in memory
+    // Hence, accessing a static variable refers to the same date
+    // Whereas accessing a const duplicates the data whenever it's used
+
     // Immutable static variable
     static BAR: i32 = 3;
 
-    // Static variable
-    static mut BAZ: i32 = 3;
+    // Mutable static variable
+    static mut VAR: i32 = 3;
     // A static variable can be mutable compared to a constant
     // Yet, it requires to be done inside an unsafe block
     unsafe {
-        BAZ = 4;
+        VAR = 4;
     }
 }
 
@@ -311,6 +320,16 @@ fn loops() {
             break sum < 10; // Returns a boolean
         }
     };
+
+    // Enumerate
+    let v = vec![1, 2, 3];
+    for (index, value) in v.iter().enumerate() {
+        println!("index={}, value={}", index, value);
+    }
+}
+
+fn print_coordinates(&(x, y): &(i32, i32)) {
+    println!("x={}, y={}", x, y);
 }
 
 fn array() {
@@ -638,6 +657,13 @@ fn closures() {
     let v = 1;
     let s = StructWithClosure { f: |x| x + v };
     let n = (s.f)(1);
+
+    // A function can also accept a closure
+    function_accepting_closure(1, 2, |a, b| a + b);
+    // We could have also passed a function like so
+    function_accepting_closure(1, 2, add);
+
+    // A function retuning a fn type can't return a closure directly
 }
 
 struct StructWithFunction {
@@ -649,6 +675,14 @@ where
     T: Fn(u32) -> u32,
 {
     f: T,
+}
+
+fn function_accepting_closure(a: i32, b: i32, f: fn(i32, i32) -> i32) -> i32 {
+    return f(a, b);
+}
+
+fn add(a: i32, b: i32) -> i32 {
+    a + b
 }
 
 fn hashmap() {
@@ -694,7 +728,7 @@ fn hashmap() {
     let m: HashMap<_, _> = v1.iter().zip(v2.iter()).collect();
 }
 
-fn impls_traits() {
+fn traits() {
     // An impl is used to define method for structs and enums
     let p = Point { x: 1, y: 1 }.foo(Point { x: 2, y: 2 });
 
@@ -734,6 +768,11 @@ fn impls_traits() {
     // * Either the trait is local to our crate
     // * Or if the type is local to our crate
     // We can't implement external traits on external types
+
+    // Method calls on trait objects (dyn Trait) works only with traits which are object safe
+    // A trait is object safe if all the methods defined in the traits have the following properties:
+    // * The return type isn't Self
+    // * There are no generic type parameters
 }
 
 struct Point {
@@ -743,7 +782,6 @@ struct Point {
 
 // A collection of methods on Point structure
 impl Point {
-    // TODO self (ownership), &self (reference) or &mut self (mutable reference)?
     fn foo(self, point: Point) -> Point {
         Point {
             x: self.x + point.x,
@@ -938,6 +976,13 @@ fn pattern_matching() {
         Ordering::Equal => "equals",
     };
 
+    // Matching multiple options
+    let level = 22;
+    let n = match level {
+        1 | 2 => "beginner",
+        _ => "other",
+    };
+
     // Matching an interval
     let level = 22;
     let n = match level {
@@ -946,6 +991,13 @@ fn pattern_matching() {
         11..=20 => "expert",
         _ => "other",
     };
+
+    let c = 'x';
+    match c {
+        'a'..='j' => (),
+        'k'..='z' => (),
+        _ => (),
+    }
 
     // Pattern matching on a tuple
     let i = 1;
@@ -966,6 +1018,59 @@ fn pattern_matching() {
         EnumWithVariants::Bar(foo) => println!("element={}", foo),
         _ => println!("else"), // Baz variant
     }
+
+    // There are two types of patterns:
+    // * Irrefutable: pattern that matches for any possible value
+    // * Refutable: pattern that can fail to match for some possible value
+    // Irrefutable
+    let e = EnumWithVariants::Bar("foo".to_string());
+    match e {
+        // We have to use all possible enum values or use a default case
+        EnumWithVariants::Foo { id, age } => (),
+        EnumWithVariants::Bar(_) => (),
+        EnumWithVariants::Baz => (),
+    }
+    // Refutable
+    let option = Some(5);
+    if let Some(o) = option {}
+    // Function parameters, let statement, and for loops only can only accept irrefutable patterns
+
+    // Match guard: an additional if condition specified after a pattern in a match arm
+    let option = Some(5);
+    match option {
+        // Match guard
+        Some(x) if x < 5 => (),
+        Some(x) => (),
+        _ => (),
+    }
+
+    // The @ operator (at) allows to create a variable that holds a value at the same time we're testing it
+    let option = Some(5);
+    match option {
+        // Matches if option is Some(x) and if x is between 0 and 5 included
+        Some(x @ 0..=5) => (),
+        Some(x) => (),
+        _ => (),
+    }
+}
+
+fn destructure() {
+    // Destructure a tuple
+    let (x, y) = (1, 2);
+
+    // Matching only the first and last elements of a tuple
+    let numbers = (1, 2, 3, 4, 5);
+    match numbers {
+        (first, .., last) => println!("first={}, last={}", first, last),
+    }
+
+    // During a function call
+    print_coordinates(&(3, 5));
+
+    // Destructure a structure
+    let point = Point { x: 1, y: 2 };
+    let Point { x, y } = point;
+    println!("x={}, y={}", x, y);
 }
 
 fn if_let() {
@@ -978,6 +1083,15 @@ fn if_let() {
     let o: Option<i32> = Some(1);
     if let Some(i) = o {
         println!("{}", i);
+    }
+
+    // While let is also possible
+    let mut stack = Vec::new();
+    stack.push(1);
+    stack.push(2);
+    stack.push(3);
+    while let Some(top) = stack.pop() {
+        println!("{}", top);
     }
 }
 
@@ -1036,6 +1150,10 @@ fn option() {
 
     // unwrap_or_else takes a closure to return a default value
     let s: String = option_example(0).unwrap_or_else(|| String::from("foo"));
+
+    // To convert an &Option<T> into an Option<&T>, we should use as_ref
+    let option = option_example(0);
+    let option1: &String = option.as_ref().unwrap();
 }
 
 fn option_example(i: i32) -> Option<String> {
@@ -1182,8 +1300,6 @@ fn copy() {
     // Types that implement the Copy trait:
     // * Primitives
     // * Tuple of Copy types
-
-    // TODO: Copy trait
 }
 
 fn borrowing() {
@@ -1244,6 +1360,12 @@ fn borrowing() {
     //      * One mutable reference
     //      * Any number of immutable references
     // * References must always be valid
+
+    // Global summary, when assigning variables, calling or returning values, we're in one of these situations:
+    // * Copy (owner of a new value)
+    // * Move (transfer ownership)
+    // * Shared reference (multiple)
+    // * Mutable reference (single)
 }
 
 fn function_accepting_shared_borrowing_vector(_: &Vec<i32>) {}
@@ -1529,6 +1651,14 @@ fn smart_pointers() {
     // Access the reference count
     println!("reference count={}", Rc::strong_count(&a));
 
+    // While Rc::clone increments strong_count, we also can create weak references (increment weak_count)
+    // The main difference is that the weak_count doesn't have to be zero for the Rc<T> instance
+    // to be cleaned up: a weak reference doesn't express an ownership relationship
+    let weak: Weak<Foo> = Rc::downgrade(&a);
+
+    // Access the weak count
+    println!("weak count={}", Rc::weak_count(&a));
+
     // -------------------- RefCell --------------------
 
     // RefCell<T> is for interior mutability
@@ -1598,6 +1728,137 @@ fn sort() {
     input.sort();
     // Sort in the decreasing order
     input.sort_by(|a, b| b.cmp(a));
+}
+
+fn threads() {
+    // Create a new thread
+    let handle = thread::spawn(|| println!("in a new thread"));
+    handle.join();
+
+    // We can also use move to force the closure to take ownership of the values
+    let v = vec![1, 2, 3];
+    thread::spawn(move || println!("{:?}", v));
+    // The following line wouldn't compile
+    // println!("{:?}", v);
+}
+
+fn message_passing() {
+    // We can use message passing to transfer data between threads using the mspc library
+    // mspc: multiple senders, only one receiver
+    let (tx, rx) = channel();
+    thread::spawn(move || {
+        let v = vec![1, 2, 3];
+        tx.send(v);
+        // Sending the value is a move so the following line wouldn't compile
+        // println!("{:?}", v);
+    });
+    // recv() is blocking whereas try_recv is not blocking
+    let vec = rx.recv().unwrap();
+    println!("received from thread: {:?}", vec)
+}
+
+fn arc() {
+    // Arc<T> is a smart pointer like Rc<T> but safe to concurrent uses (A stands for atomic)
+
+    // Implementation of a shared counter
+    let counter = Arc::new(Mutex::new(0));
+    let mut shared_value = 0;
+    let mut handles = Vec::new();
+    for _ in 0..3 {
+        // Create a new strong count
+        let counter = Arc::clone(&counter);
+        let handle = thread::spawn(move || {
+            let mut v = counter.lock().unwrap();
+            *v += 1;
+        });
+        handles.push(handle);
+    }
+
+    // Wait for all the threads to complete
+    for handle in handles {
+        handle.join();
+    }
+
+    // Print the final result
+    println!("final counter value={}", *counter.lock().unwrap());
+}
+
+fn sync_send() {
+    // The Send marker trait indicates the ownership of the type can be transferred between threads
+
+    // The Sync marker trait indicates that it's safe for the type to be referenced from multiple threads
+}
+
+fn unsafe_() {
+    // Unsafe Rust exists to tell the compiler: "trust me, I know what I'm doing"
+
+    let mut v = 5;
+    // Unsafe Rust introduces the concept of raw pointers:
+    // *const T
+    let r1 = &v as *const i32;
+    // *mut T
+    let r2 = &mut v as *mut i32;
+    // Differences between smart and raw pointers:
+    // * Allowed to ignore borrowing rules
+    // * Aren't guaranteed to point to valid memory
+    // * Are allowed to be null
+    // * Don't implement any automatic cleanup
+
+    // Calling an unsafe method can be done either:
+    // * In adding the unsafe keyword just like in the definition of dangerous
+    // * Or by adding an unsafe block (this way, the whole function don't have to be unsafe)
+    unsafe {
+        dangerous();
+    }
+
+    // A trait can also be unsafe if at least one of its methods has some invariants the compiler
+    // can't verify (see UnsafeTrait)
+}
+
+unsafe fn call_dangerous() {}
+
+unsafe fn dangerous() {}
+
+unsafe trait UnsafeTrait {}
+
+fn associated_types() {
+    // TODO
+}
+
+fn newtype() {
+    // We mentioned that we're allowed to implement a trait on a type either as long as either
+    // the trait or the type are local to our create
+    // It's possible to get around this restriction with the newtype pattern
+
+    // For example, Vec<String> doesn't implement fmt::Display so we can create a wrapper (see Wrapper)
+}
+
+struct Wrapper(Vec<String>);
+
+impl fmt::Display for Wrapper {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "[{}]", self.0.join(", "))
+    }
+}
+
+fn alias() {
+    // We can create type aliases
+    type Kilometers = i32;
+    let x: Kilometers = 5;
+}
+
+fn never_type() {
+    // Rust has a special type for functions that never return
+    // See the never_return function
+    // We should read it as: "the function never_return can never possibly return"
+}
+
+fn never_return() -> ! {
+    loop {}
+}
+
+fn macros() {
+    // Macros are a way of writing code that writes other code; also known as metaprogramming
 }
 
 fn testing() {
