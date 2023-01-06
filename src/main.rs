@@ -1435,6 +1435,9 @@ fn iterator() {
     let mut custom_iterator = CustomIterator::new(vec![1, 2, 3]);
     let o = custom_iterator.next(); // 1
 
+    // Fold
+    let v = (1..10).fold(0, |sum, i| sum + i);
+
     // Split per chunk
     (1..10).collect::<Vec<i32>>().chunks(3);
 }
