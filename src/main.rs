@@ -1893,6 +1893,9 @@ mod tests {
     // Verbose mode:
     // $ cargo test -- --show-output
 
+    // Run a test in release mode
+    // $ cargo test --release test_sum
+
     #[test]
     // We can use:
     // * #[ignore] to ignore a test
